@@ -1,0 +1,25 @@
+﻿<Properties StartupConfiguration="{5F00762B-5800-425E-9F02-AED8D7CEB8B4}|Default">
+  <MonoDevelop.Ide.Workbench ActiveDocument="AsyncServer/Server.cs">
+    <Files>
+      <File FileName="AsyncServer/Program.cs" Line="17" Column="1" />
+      <File FileName="AsyncServer/Server.cs" Line="26" Column="1" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="ChineseChess" expanded="True">
+            <Node name="AsyncServer" expanded="True" />
+          </Node>
+        </State>
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.ItemProperties.AsyncServer PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <Debugger.DebugSourceFolders />
+  <MultiItemStartupConfigurations />
+</Properties>
