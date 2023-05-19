@@ -28,47 +28,51 @@ namespace AsyncServer
             listener.Listen(100);
             Console.WriteLine("Listening at {0}:{1}", ip, port);
 
-            var handler = await listener.AcceptAsync();
-            Thread thread = new(async () =>
+            var current_conn = 0; // current connected clients
+            while (true)
             {
-                while (true)
+                var handler = await listener.AcceptAsync();
+                current_conn++;
+                Console.WriteLine("{0} connected, current connection: {1}", handler.RemoteEndPoint, current_conn);
+                new Thread(async () =>
                 {
                     // Receive message.
-                    var buffer = new byte[1_024];
-                    var received = await handler.ReceiveAsync(buffer, SocketFlags.None);
-                    var response = Encoding.UTF8.GetString(buffer, 0, received);
-
-                    var eom = "<|EOM|>";
-                    if (response.IndexOf(eom) > -1 /* is end of message */)
+                    while (true)
                     {
-                        await RespondClient(response, eom, handler);
+                        var buffer = new byte[1_024];
+                        var received = await handler.ReceiveAsync(buffer, SocketFlags.None);
+                        var response = Encoding.UTF8.GetString(buffer, 0, received);
 
+                        var eom = "<|EOM|>";
+
+                        if (response.Trim().Equals("bye") || received == 0)
+                        {
+                            current_conn--;
+                            Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
+                            break;
+                        }
+                        else
+                        {
+
+                            if (response.IndexOf(eom) > -1 /* is end of message */)
+                            {
+                                await RespondClient(response, eom, handler);
+                            }
+                        }
                     }
-                }
-            });
-            thread.Start();
+                }).Start();
+            }
         }
-
-        public static async Task<int> RespondClient(string response, string eom, Socket handler)
+        public static async Task RespondClient(string response, string eom, Socket handler)
         {
             Console.WriteLine(
-                        $"Socket server received message: \"{response.Replace(eom, "")}\"");
+                        $"Socket server received message on thread \"{Environment.CurrentManagedThreadId}\": \"{response.Replace(eom, "")}\"");
 
             var ackMessage = "<|ACK|>";
             var echoBytes = Encoding.UTF8.GetBytes(ackMessage);
             await handler.SendAsync(echoBytes, 0);
             Console.WriteLine(
-                $"Socket server sent acknowledgment: \"{ackMessage}\"");
-            if (response.Contains("over"))
-            {
-                Console.WriteLine("over");
-                return 1;
-            }
-            else
-            {
-                Console.WriteLine("continue");
-                return 0;
-            }
+                $"Socket server sent acknowledgment on thread \"{Environment.CurrentManagedThreadId}\": \"{ackMessage}\"");
         }
     }
 }
