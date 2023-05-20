@@ -1,15 +1,16 @@
-var board = document.getElementById("mainBoard");
-board.addEventListener("click", (e) => {
-    console.log(e.clientX - cellList[0].getBoundingClientRect().x, e.clientY - cellList[0].getBoundingClientRect().y);
-});
+const baseUrl = "ws://127.0.0.1:8081"
+const board = document.getElementById("mainBoard");
+// board.addEventListener("click", (e) => {
+//     console.log(e.clientX - cellList[0].getBoundingClientRect().x, e.clientY - cellList[0].getBoundingClientRect().y);
+// });
 
 // all cells
-var cellList = Array.from(document.getElementsByTagName("li")).filter((li) => {
+const cellList = Array.from(document.getElementsByTagName("li")).filter((li) => {
     return li.childNodes.length != 3 && li.id == "";
 });
 
 // get all coordinates available for chess
-var getCoordinates = (cellList) => {
+const getCoordinates = (cellList) => {
     var coordinates = cellList.map((cell) => {
         return { x: cell.getBoundingClientRect().x, y: cell.getBoundingClientRect().y };
     });
@@ -56,8 +57,92 @@ var getCoordinates = (cellList) => {
     return sorted;
 }
 
+// get available location based on basic moving rules
+// args -- 
+// division: '炮', '兵', etc, 
+// curr_loc: {x:x, y:y}: index of location, e.g. 5, 1 means the point on row 2, collum 6
+const getAvailableLoc = (division, curr_loc) => {
+    var targets = [];
+    left_slot = []// number of all other points on the left
+    for (var i = 1; i <= curr_loc.y; i++) {
+        left_slot.push(i)
+    }
+    var right_slot = [] // number of all other points on the right
+    for (var i = 1; i <= 8 - curr_loc.y; i++) {
+        right_slot.push(i)
+    }
+    var above_slot = []// number of all other points above
+    for (var i = 1; i <= curr_loc.x; i++) {
+        above_slot.push(i)
+    }
+    var below_slot = [] // number of all other points below
+    for (var i = 1; i <= 9 - curr_loc.x; i++) {
+        below_slot.push(i)
+    }
+    var horse_slot = [
+        { x: curr_loc.x - 1, y: curr_loc.y - 2 },
+        { x: curr_loc.x - 1, y: curr_loc.y + 2 },
+        { x: curr_loc.x - 2, y: curr_loc.y - 1 },
+        { x: curr_loc.x - 2, y: curr_loc.y + 1 },
+        { x: curr_loc.x + 1, y: curr_loc.y - 2 },
+        { x: curr_loc.x + 1, y: curr_loc.y + 2 },
+        { x: curr_loc.x + 2, y: curr_loc.y - 1 },
+        { x: curr_loc.x + 2, y: curr_loc.y + 1 },
+    ].filter((item) => item.x >= 0 && item.x <= 9 && item.y >= 0 && item.y <= 8) // number of all other points for horse
+
+    var elephant_slot = [
+        { x: curr_loc.x - 2, y: curr_loc.y - 2 },
+        { x: curr_loc.x - 2, y: curr_loc.y + 2 },
+        { x: curr_loc.x + 2, y: curr_loc.y - 2 },
+        { x: curr_loc.x + 2, y: curr_loc.y + 2 },
+    ].filter((item) => item.x >= 0 && item.x <= 9 && item.y >= 0 && item.y <= 8) // number of all other points for elephant
+
+    switch (division) {
+        case '砲':
+        case '炮':
+            if (left_slot.length != 0) {
+                left_slot.map((item) => {
+                    targets.push({ x: curr_loc.x, y: curr_loc.y - item })
+                })
+            }
+            if (right_slot.length != 0) {
+                right_slot.map((item) => {
+                    targets.push({ x: curr_loc.x, y: curr_loc.y + item })
+                })
+            }
+            if (above_slot.length != 0) {
+                above_slot.map((item) => {
+                    targets.push({ x: curr_loc.x - item, y: curr_loc.y })
+                })
+            }
+            if (below_slot.length != 0) {
+                below_slot.map((item) => {
+                    targets.push({ x: curr_loc.x + item, y: curr_loc.y })
+                })
+            }
+            break
+        case '馬':
+            if (horse_slot.length != 0) {
+                horse_slot.map((item) => {
+                    targets.push(item)
+                })
+            }
+            break;
+        case '相':
+        case '象':
+            if (elephant_slot.length != 0) {
+                elephant_slot.map((item) => {
+                    targets.push(item)
+                })
+            }
+            break;
+    }
+
+    return targets;
+}
+
 // initiate chesses
-var initiate = (availableLocations) => {
+const initiate = (availableLocations) => {
     renderChess('red', '砲', availableLocations, 7, 1)
     renderChess('red', '砲', availableLocations, 7, 7)
     renderChess('red', '兵', availableLocations, 6, 0)
@@ -94,10 +179,15 @@ var initiate = (availableLocations) => {
 }
 
 // all coordinates available for chess
-var availableLocations = getCoordinates(cellList)
+const availableLocations = getCoordinates(cellList)
 
-// render a chess, args -- faction: black or red; division: '炮', '兵', etc, location: e.g. availableLocations, x&y: index of location
-var renderChess = (faction, division, location, x, y) => {
+// render a chess, 
+// args -- 
+// faction: black or red; 
+// division: '炮', '兵', etc, 
+// location: e.g. availableLocations, 
+// x&y: index of location, e.g. x=5, y=1 means the point on row 6, collum 2
+const renderChess = (faction, division, location, x, y) => {
     var chess = document.createElement('div');
     chess.className = `chessPieces ${faction}`;
     var innerDiv = document.createElement('div');
@@ -112,7 +202,10 @@ var renderChess = (faction, division, location, x, y) => {
     chess.addEventListener("click", () => {
         try {
             curr_loc = JSON.parse(chess.id)
-            available_loc = [{ x: curr_loc.x + 1, y: curr_loc.y + 1 }, { x: curr_loc.x + 0, y: curr_loc.y + 1 }]
+            // var available_loc = [{ x: curr_loc.x + 1, y: curr_loc.y + 1 }, { x: curr_loc.x + 0, y: curr_loc.y + 1 }]
+            var available_loc = getAvailableLoc(division, curr_loc)
+            console.log("curr: ", curr_loc)
+            console.log("available: ", available_loc)
             available_loc.map((item) => {
                 var availableLocation = document.createElement('div');
                 availableLocation.className = `chessPieces ${faction}`;
@@ -139,5 +232,11 @@ var renderChess = (faction, division, location, x, y) => {
 
 initiate(availableLocations)
 
+const connect = document.getElementById('click')
+connect.addEventListener('click', () => {
+    const socket = io(baseUrl)
+    socket.emit("dsgfsdf")
+    console.log("socket connected ", socket.connected)
 
+})
 

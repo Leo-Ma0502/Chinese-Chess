@@ -53,11 +53,7 @@ namespace AsyncServer
                         }
                         else
                         {
-
-                            if (response.IndexOf(eom) > -1 /* is end of message */)
-                            {
-                                await RespondClient(response, eom, handler);
-                            }
+                            await RespondClient(response, eom, handler);
                         }
                     }
                 }).Start();
@@ -65,14 +61,12 @@ namespace AsyncServer
         }
         public static async Task RespondClient(string response, string eom, Socket handler)
         {
-            Console.WriteLine(
-                        $"Socket server received message on thread \"{Environment.CurrentManagedThreadId}\": \"{response.Replace(eom, "")}\"");
+            Console.WriteLine("Socket server received message on thread {0}: {1}", Environment.CurrentManagedThreadId, response);
 
             var ackMessage = "<|ACK|>";
             var echoBytes = Encoding.UTF8.GetBytes(ackMessage);
-            await handler.SendAsync(echoBytes, 0);
-            Console.WriteLine(
-                $"Socket server sent acknowledgment on thread \"{Environment.CurrentManagedThreadId}\": \"{ackMessage}\"");
+            await handler.SendAsync(echoBytes, SocketFlags.None);
+            Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, ackMessage);
         }
     }
 }
