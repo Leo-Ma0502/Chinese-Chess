@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/yehengma/COMPSCI711/Chinese-Chess/ChineseChess/AsyncServer/AsyncServer.csproj",
+      "projectUniqueName": "/Users/yehengma/COMPSCI711/Chinese-Chess/Server/AsyncServer/AsyncServer.csproj",
       "projectName": "AsyncServer",
-      "projectPath": "/Users/yehengma/COMPSCI711/Chinese-Chess/ChineseChess/AsyncServer/AsyncServer.csproj",
+      "projectPath": "/Users/yehengma/COMPSCI711/Chinese-Chess/Server/AsyncServer/AsyncServer.csproj",
       "packagesPath": "/Users/yehengma/.nuget/packages/",
-      "outputPath": "/Users/yehengma/COMPSCI711/Chinese-Chess/ChineseChess/AsyncServer/obj/",
+      "outputPath": "/Users/yehengma/COMPSCI711/Chinese-Chess/Server/AsyncServer/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/yehengma/.nuget/NuGet/NuGet.Config"

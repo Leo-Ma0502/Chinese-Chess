@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "/kE6+GzXVWxJO2D+miH7+Iv1Bx8sXWesbQSgT2feFjfXkf9jp8Yf8a5yacc+PA7BwjcoPdG332Hnlm8TBto3Hw==",
+  "dgSpecHash": "kcqeY7+KRYYzkZUZpr80pneB9zqZpdGXYWXP5qPsumFhTWG08v2d0y4pOmPNy+K3wUsbm/ghCqUoBuy20DtCwg==",
   "success": true,
-  "projectFilePath": "/Users/yehengma/COMPSCI711/Chinese-Chess/ChineseChess/AsyncServer/AsyncServer.csproj",
+  "projectFilePath": "/Users/yehengma/COMPSCI711/Chinese-Chess/Server/AsyncServer/AsyncServer.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }
