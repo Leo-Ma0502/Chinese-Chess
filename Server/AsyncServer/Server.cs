@@ -1,18 +1,125 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 namespace AsyncServer
 {
     public class Server
     {
         private readonly IPAddress ip;
         private readonly int port;
-        public Server(IPAddress ip, int port)
+        private string[,] status;
+        public Server(IPAddress ip, int port, object[,] status)
         {
             this.ip = ip;
             this.port = port;
+            this.status = getStatus(); // global status of combat
         }
-
+        private static string[,] getStatus()
+        {
+            var temp = new string[10, 9];
+            string fac = "null", div = "null";
+            // i: row
+            for (int i = 0; i < 10; i++)
+            {
+                // j: col
+                for (int j = 0; j < 9; j++)
+                {
+                    if (i < 4)
+                    {
+                        fac = "black";
+                        if (i == 2)
+                        {
+                            if (j == 1 || j == 7)
+                            {
+                                div = "炮";
+                            }
+                        }
+                        else if (i == 3)
+                        {
+                            if (j == 0 || j == 2 || j == 4 || j == 6 || j == 8)
+                            {
+                                div = "卒";
+                            }
+                        }
+                        else if (i == 0)
+                        {
+                            if (j == 0 || j == 8)
+                            {
+                                div = "車";
+                            }
+                            else if (j == 1 || j == 7)
+                            {
+                                div = "馬";
+                            }
+                            else if (j == 2 || j == 6)
+                            {
+                                div = "象";
+                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
+                            }
+                            else if (j == 3 || j == 5)
+                            {
+                                div = "士";
+                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
+                            }
+                            else if (j == 4)
+                            {
+                                div = "將";
+                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
+                            }
+                        }
+                    }
+                    else if (i > 5)
+                    {
+                        fac = "red";
+                        if (i == 7)
+                        {
+                            if (j == 1 || j == 7)
+                            {
+                                div = "砲";
+                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
+                            }
+                        }
+                        else if (i == 6)
+                        {
+                            if (j == 0 || j == 2 || j == 4 || j == 6 || j == 8)
+                            {
+                                div = "兵";
+                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
+                            }
+                        }
+                        else if (i == 9)
+                        {
+                            if (j == 0 || j == 8)
+                            {
+                                div = "車";
+                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
+                            }
+                            else if (j == 1 || j == 7)
+                            {
+                                div = "馬";
+                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
+                            }
+                            else if (j == 2 || j == 6)
+                            {
+                                div = "相";
+                                // temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
+                            }
+                            else if (j == 3 || j == 5)
+                            {
+                                div = "仕";
+                            }
+                            else if (j == 4)
+                            {
+                                div = "帥";
+                            }
+                        }
+                    }
+                    temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
+                }
+            }
+            return temp;
+        }
         //the main method to receive and send data
         //source: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/sockets/socket-services#create-a-socket-server
         public async Task Serve()
@@ -29,7 +136,7 @@ namespace AsyncServer
             Console.WriteLine("Listening at {0}:{1}", ip, port);
 
             var current_conn = 0; // current connected clients
-            while (true)
+            while (current_conn < 3)
             {
                 var handler = await listener.AcceptAsync();
                 current_conn++;
@@ -42,10 +149,7 @@ namespace AsyncServer
                         var buffer = new byte[1_024];
                         var received = await handler.ReceiveAsync(buffer, SocketFlags.None);
                         var response = Encoding.UTF8.GetString(buffer, 0, received);
-
-                        var eom = "<|EOM|>";
-
-                        if (response.Trim().Equals("bye") || received == 0)
+                        if (received == 0)
                         {
                             current_conn--;
                             Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
@@ -53,22 +157,53 @@ namespace AsyncServer
                         }
                         else
                         {
-                            await RespondClient(response, eom, handler);
+                            await RespondClient(response, handler, current_conn);
                         }
+
                     }
                 }).Start();
             }
         }
-        public static async Task RespondClient(string response, string eom, Socket handler)
+        public async Task RespondClient(string response, Socket handler, int current_conn)
         {
-            Console.WriteLine("Socket server received message on thread {0}: {1}", Environment.CurrentManagedThreadId, response);
-
-            var ackMessage = "<|ACK|>";
-            var responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {ackMessage.Length}\r\n\r\n{ackMessage}";
-            // var echoBytes = Encoding.UTF8.GetBytes(ackMessage);
-            var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-            await handler.SendAsync(echoBytes, SocketFlags.None);
-            Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, ackMessage);
+            // /register: assign user name
+            if (response.Contains("register"))
+            {
+                string res = "Han";
+                string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                await handler.SendAsync(echoBytes, SocketFlags.None);
+                Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
+            }
+            // /quit
+            else if (response.Contains("quit"))
+            {
+                string res = "Bye";
+                string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                await handler.SendAsync(echoBytes, SocketFlags.None);
+                current_conn--;
+                Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
+            }
+            // overall status
+            else if (response.Contains("status"))
+            {
+                string[] temp = new string[90];
+                int k = 0;
+                for (int i = 0; i < 10; i++)
+                {
+                    for (int j = 0; j < 9; j++)
+                    {
+                        temp[k] = this.status[i, j];
+                        k++;
+                    }
+                }
+                string res = string.Join(",", temp);
+                string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                await handler.SendAsync(echoBytes, SocketFlags.None);
+                Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
+            }
         }
     }
 }

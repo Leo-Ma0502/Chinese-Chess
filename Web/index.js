@@ -204,14 +204,17 @@ const renderChess = (faction, division, location, x, y) => {
             curr_loc = JSON.parse(chess.id)
             // var available_loc = [{ x: curr_loc.x + 1, y: curr_loc.y + 1 }, { x: curr_loc.x + 0, y: curr_loc.y + 1 }]
             var available_loc = getAvailableLoc(division, curr_loc)
-            console.log("curr: ", curr_loc)
-            console.log("available: ", available_loc)
+            // console.log("curr: ", curr_loc)
+            // console.log("available: ", available_loc)
             available_loc.map((item) => {
                 var availableLocation = document.createElement('div');
-                availableLocation.className = `chessPieces ${faction}`;
+                availableLocation.className = "chessPieces expected";
                 availableLocation.style.position = "absolute"
                 availableLocation.style.left = location[item.x][item.y].x + 47.5;
                 availableLocation.style.top = location[item.x][item.y].y + 65;
+                availableLocation.addEventListener("click", () => {
+                    moveChess(faction, division, location, x, y, item.x, item.y, board)
+                })
                 board.appendChild(availableLocation);
                 chess.addEventListener("dblclick", () => {
                     try {
@@ -230,12 +233,58 @@ const renderChess = (faction, division, location, x, y) => {
     board.appendChild(chess);
 }
 
+const deleteChess = (x, y) => {
+    var chess_to_delete = document.getElementById(JSON.stringify({ x: x, y: y }));
+    board.removeChild(chess_to_delete);
+}
+
+const moveChess = (faction, division, location, curr_x, curr_y, tar_x, tar_y, board) => {
+    deleteChess(curr_x, curr_y);
+    renderChess(faction, division, location, tar_x, tar_y);
+    var availableLocation = Array.from(document.getElementsByClassName("expected"));
+    availableLocation.map((item) => {
+        board.removeChild(item);
+    })
+}
+
 initiate(availableLocations)
 
-const connect = document.getElementById('click')
-connect.addEventListener('click', () => {
-    fetch(baseUrl, { method: 'GET' }).then(
-        (res) => { res.text().then((res) => { console.log(res) }) }
+var username;
+var registerStatus = document.getElementById("registerStatus");
+
+var join = document.createElement("button");
+join.innerText = "Join Game";
+join.addEventListener("click", () => {
+    fetch(`${baseUrl}/register`, { method: 'POST' }).then(
+        (res) => {
+            res.text().then((res) => {
+                console.log(res);
+                username = res;
+                var welcome = document.createElement("span")
+                welcome.innerText = `Welcome, you have been assigned with name ${username}`;
+                registerStatus.appendChild(welcome);
+                registerStatus.removeChild(join)
+
+                var logout = document.createElement("button")
+                logout.innerText = "Leave Game";
+                logout.addEventListener("click", () => {
+                    fetch(`${baseUrl}/quit`, { method: 'POST' });
+                    registerStatus.appendChild(join);
+                    registerStatus.removeChild(welcome);
+                    registerStatus.removeChild(logout);
+                })
+                registerStatus.appendChild(logout)
+            })
+        }
     )
 })
+registerStatus.appendChild(join);
 
+
+
+fetch(`${baseUrl}/status`, { method: 'POST' }).then(
+    (res) => {
+        res.text().then((res) => {
+            console.log(JSON.parse("[" + res + "]"));
+        })
+    })
