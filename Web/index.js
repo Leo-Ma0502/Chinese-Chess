@@ -4,6 +4,19 @@ const board = document.getElementById("mainBoard");
 //     console.log(e.clientX - cellList[0].getBoundingClientRect().x, e.clientY - cellList[0].getBoundingClientRect().y);
 // });
 
+// get all chesses
+var chessLayout = fetch(`${baseUrl}/status`, { method: 'POST' })
+    .then(
+        (res) => {
+            return (res.text().then((res) => {
+                var temp = Array.from(JSON.parse("[" + res + "]"))
+                temp.map((item) => {
+                    renderChess(item.faction, item.division, availableLocations, item.row, item.col)
+                })
+                return temp
+            }))
+        })
+
 // all cells
 const cellList = Array.from(document.getElementsByTagName("li")).filter((li) => {
     return li.childNodes.length != 3 && li.id == "";
@@ -56,6 +69,21 @@ const getCoordinates = (cellList) => {
     }
     return sorted;
 }
+
+// check whether a point is occupied
+const checkWhetherOccupied = (layout, row, col) => {
+    return layout.then((layout) => {
+        const test = layout[row * 9 + col]
+        if (test.faction == "null" || layout[row * 9 + col].division == "null") {
+            return "empty"
+        }
+        else {
+            return { fac: test.faction, div: test.division }
+        }
+    })
+}
+console.log(checkWhetherOccupied(chessLayout, 7, 1))
+
 
 // get available location based on basic moving rules
 // args -- 
@@ -138,7 +166,19 @@ const getAvailableLoc = (division, curr_loc) => {
             break;
     }
 
-    return targets;
+    var targets_filtered = []
+
+    targets.map((item) => {
+        checkWhetherOccupied(chessLayout, item.x, item.y).then(res => {
+            setTimeout(() => {
+                if (res == "empty") {
+                    targets_filtered.push({ x: item.x, y: item.y })
+                }
+            }, 50)
+        })
+    })
+
+    return targets_filtered;
 }
 
 // initiate chesses
@@ -188,49 +228,79 @@ const availableLocations = getCoordinates(cellList)
 // location: e.g. availableLocations, 
 // x&y: index of location, e.g. x=5, y=1 means the point on row 6, collum 2
 const renderChess = (faction, division, location, x, y) => {
-    var chess = document.createElement('div');
-    chess.className = `chessPieces ${faction}`;
-    var innerDiv = document.createElement('div');
-    var spanElement = document.createElement('span');
-    spanElement.textContent = division;
-    innerDiv.appendChild(spanElement);
-    chess.id = JSON.stringify({ x: x, y: y })
-    chess.appendChild(innerDiv);
-    chess.style.position = "absolute"
-    chess.style.left = location[x][y].x + 47.5;
-    chess.style.top = location[x][y].y + 65;
-    chess.addEventListener("click", () => {
-        try {
-            curr_loc = JSON.parse(chess.id)
-            // var available_loc = [{ x: curr_loc.x + 1, y: curr_loc.y + 1 }, { x: curr_loc.x + 0, y: curr_loc.y + 1 }]
-            var available_loc = getAvailableLoc(division, curr_loc)
-            // console.log("curr: ", curr_loc)
-            // console.log("available: ", available_loc)
-            available_loc.map((item) => {
-                var availableLocation = document.createElement('div');
-                availableLocation.className = "chessPieces expected";
-                availableLocation.style.position = "absolute"
-                availableLocation.style.left = location[item.x][item.y].x + 47.5;
-                availableLocation.style.top = location[item.x][item.y].y + 65;
-                availableLocation.addEventListener("click", () => {
-                    moveChess(faction, division, location, x, y, item.x, item.y, board)
-                })
-                board.appendChild(availableLocation);
-                chess.addEventListener("dblclick", () => {
-                    try {
-                        board.removeChild(availableLocation)
-                    }
-                    catch (e) {
-                        console.log(e)
-                    }
-                })
-            })
+    if (faction == "null" || division == "null") {
+        return null;
+    } else {
+        var chess = document.createElement('div');
+        chess.className = `chessPieces ${faction}`;
+        var innerDiv = document.createElement('div');
+        var spanElement = document.createElement('span');
+        spanElement.textContent = division;
+        innerDiv.appendChild(spanElement);
+        chess.id = JSON.stringify({ x: x, y: y })
+        chess.appendChild(innerDiv);
+        chess.style.position = "absolute"
+        chess.style.left = location[x][y].x + 47.5;
+        chess.style.top = location[x][y].y + 65;
+        chess.addEventListener("click", () => {
+            try {
+                curr_loc = JSON.parse(chess.id)
+                // var available_loc = [{ x: curr_loc.x + 1, y: curr_loc.y + 1 }, { x: curr_loc.x + 0, y: curr_loc.y + 1 }]
+                // var available_loc = getAvailableLoc(division, curr_loc)
+                var available_loc;
+                setTimeout(() => {
+                    available_loc = getAvailableLoc(division, curr_loc)
+                    console.log(available_loc, available_loc.length)
+                    available_loc.map((item) => {
+                        var availableLocation = document.createElement('div');
+                        availableLocation.className = "chessPieces expected";
+                        availableLocation.style.position = "absolute"
+                        availableLocation.style.left = location[item.x][item.y].x + 47.5;
+                        availableLocation.style.top = location[item.x][item.y].y + 65;
+                        availableLocation.addEventListener("click", () => {
+                            moveChess(faction, division, location, x, y, item.x, item.y, board)
+                        })
+                        board.appendChild(availableLocation);
+                        chess.addEventListener("dblclick", () => {
+                            try {
+                                board.removeChild(availableLocation)
+                            }
+                            catch (e) {
+                                console.log(e)
+                            }
+                        })
+                    })
+                }, 100)
 
-        } catch (e) {
-            console.log(e)
-        }
-    })
-    board.appendChild(chess);
+                // console.log("curr: ", curr_loc)
+                // console.log("available: ", available_loc)
+                // var available_loc = getAvailableLoc(division, curr_loc)
+                // available_loc.map((item) => {
+                //     var availableLocation = document.createElement('div');
+                //     availableLocation.className = "chessPieces expected";
+                //     availableLocation.style.position = "absolute"
+                //     availableLocation.style.left = location[item.x][item.y].x + 47.5;
+                //     availableLocation.style.top = location[item.x][item.y].y + 65;
+                //     availableLocation.addEventListener("click", () => {
+                //         moveChess(faction, division, location, x, y, item.x, item.y, board)
+                //     })
+                //     board.appendChild(availableLocation);
+                //     chess.addEventListener("dblclick", () => {
+                //         try {
+                //             board.removeChild(availableLocation)
+                //         }
+                //         catch (e) {
+                //             console.log(e)
+                //         }
+                //     })
+                // })
+
+            } catch (e) {
+                console.log(e)
+            }
+        })
+        board.appendChild(chess);
+    }
 }
 
 const deleteChess = (x, y) => {
@@ -247,7 +317,7 @@ const moveChess = (faction, division, location, curr_x, curr_y, tar_x, tar_y, bo
     })
 }
 
-initiate(availableLocations)
+// initiate(availableLocations)
 
 var username;
 var registerStatus = document.getElementById("registerStatus");
@@ -279,12 +349,3 @@ join.addEventListener("click", () => {
     )
 })
 registerStatus.appendChild(join);
-
-
-
-fetch(`${baseUrl}/status`, { method: 'POST' }).then(
-    (res) => {
-        res.text().then((res) => {
-            console.log(JSON.parse("[" + res + "]"));
-        })
-    })

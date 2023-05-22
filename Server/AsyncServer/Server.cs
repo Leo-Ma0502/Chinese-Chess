@@ -34,12 +34,20 @@ namespace AsyncServer
                             {
                                 div = "炮";
                             }
+                            else
+                            {
+                                fac = "null"; div = "null";
+                            }
                         }
                         else if (i == 3)
                         {
                             if (j == 0 || j == 2 || j == 4 || j == 6 || j == 8)
                             {
                                 div = "卒";
+                            }
+                            else
+                            {
+                                fac = "null"; div = "null";
                             }
                         }
                         else if (i == 0)
@@ -67,6 +75,14 @@ namespace AsyncServer
                                 div = "將";
                                 //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
                             }
+                            else
+                            {
+                                fac = "null"; div = "null";
+                            }
+                        }
+                        else
+                        {
+                            fac = "null"; div = "null";
                         }
                     }
                     else if (i > 5)
@@ -79,6 +95,10 @@ namespace AsyncServer
                                 div = "砲";
                                 //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
                             }
+                            else
+                            {
+                                fac = "null"; div = "null";
+                            }
                         }
                         else if (i == 6)
                         {
@@ -86,6 +106,10 @@ namespace AsyncServer
                             {
                                 div = "兵";
                                 //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
+                            }
+                            else
+                            {
+                                fac = "null"; div = "null";
                             }
                         }
                         else if (i == 9)
@@ -113,7 +137,19 @@ namespace AsyncServer
                             {
                                 div = "帥";
                             }
+                            else
+                            {
+                                fac = "null"; div = "null";
+                            }
                         }
+                        else
+                        {
+                            fac = "null"; div = "null";
+                        }
+                    }
+                    else
+                    {
+                        fac = "null"; div = "null";
                     }
                     temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
                 }
