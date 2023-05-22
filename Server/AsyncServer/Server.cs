@@ -64,7 +64,9 @@ namespace AsyncServer
             Console.WriteLine("Socket server received message on thread {0}: {1}", Environment.CurrentManagedThreadId, response);
 
             var ackMessage = "<|ACK|>";
-            var echoBytes = Encoding.UTF8.GetBytes(ackMessage);
+            var responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {ackMessage.Length}\r\n\r\n{ackMessage}";
+            // var echoBytes = Encoding.UTF8.GetBytes(ackMessage);
+            var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
             await handler.SendAsync(echoBytes, SocketFlags.None);
             Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, ackMessage);
         }

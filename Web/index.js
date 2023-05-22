@@ -1,4 +1,4 @@
-const baseUrl = "ws://127.0.0.1:8081"
+const baseUrl = "http://127.0.0.1:8081"
 const board = document.getElementById("mainBoard");
 // board.addEventListener("click", (e) => {
 //     console.log(e.clientX - cellList[0].getBoundingClientRect().x, e.clientY - cellList[0].getBoundingClientRect().y);
@@ -234,9 +234,8 @@ initiate(availableLocations)
 
 const connect = document.getElementById('click')
 connect.addEventListener('click', () => {
-    const socket = io(baseUrl)
-    socket.emit("dsgfsdf")
-    console.log("socket connected ", socket.connected)
-
+    fetch(baseUrl, { method: 'GET' }).then(
+        (res) => { res.text().then((res) => { console.log(res) }) }
+    )
 })
 
