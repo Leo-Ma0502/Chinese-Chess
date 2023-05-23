@@ -1,199 +1,6 @@
 const baseUrl = "http://127.0.0.1:8081"
 const board = document.getElementById("mainBoard");
 
-// get all chesses
-var chessLayout = fetch(`${baseUrl}/status`, { method: 'POST' })
-    .then(
-        (res) => {
-            return (res.text().then((res) => {
-                return Array.from(JSON.parse("[" + res + "]"))
-                // temp.map((item) => {
-                //     renderChess(item.faction, item.division, availableLocations, item.row, item.col)
-                // })
-            }))
-        })
-
-chessLayout.then((res) => {
-    // render a chess, 
-    // args -- 
-    // faction: black or red; 
-    // division: '炮', '兵', etc, 
-    // location: e.g. availableLocations, 
-    // x&y: index of location, e.g. x=5, y=1 means the point on row 6, collum 2
-    const renderChess = (res, faction, division, location, x, y) => {
-        if (faction == "null" || division == "null") {
-            return null;
-        } else {
-            res[x * 9 + y].faction = faction;
-            res[x * 9 + y].division = division;
-            var chess = document.createElement('div');
-            chess.className = `chessPieces ${faction}`;
-            var innerDiv = document.createElement('div');
-            var spanElement = document.createElement('span');
-            spanElement.textContent = division;
-            innerDiv.appendChild(spanElement);
-            chess.id = JSON.stringify({ x: x, y: y })
-            chess.appendChild(innerDiv);
-            chess.style.position = "absolute"
-            chess.style.left = location[x][y].x + 47.5;
-            chess.style.top = location[x][y].y + 65;
-            chess.addEventListener("click", () => {
-                try {
-                    curr_loc = JSON.parse(chess.id)
-                    // var available_loc = [{ x: curr_loc.x + 1, y: curr_loc.y + 1 }, { x: curr_loc.x + 0, y: curr_loc.y + 1 }]
-                    // var available_loc = getAvailableLoc(division, curr_loc)
-                    var available_loc;
-                    available_loc = getAvailableLoc(division, curr_loc)
-                    // console.log(available_loc, available_loc.length)
-                    available_loc.map((item) => {
-                        var availableLocation = document.createElement('div');
-                        availableLocation.className = "chessPieces expected";
-                        availableLocation.style.position = "absolute"
-                        availableLocation.style.left = location[item.x][item.y].x + 47.5;
-                        availableLocation.style.top = location[item.x][item.y].y + 65;
-                        availableLocation.addEventListener("click", () => {
-                            moveChess(faction, division, location, x, y, item.x, item.y, board)
-                        })
-                        board.appendChild(availableLocation);
-                        chess.addEventListener("dblclick", () => {
-                            try {
-                                board.removeChild(availableLocation)
-                            }
-                            catch (e) {
-                                console.log(e)
-                            }
-                        })
-                    })
-                } catch (e) {
-                    console.log(e)
-                }
-            })
-            board.appendChild(chess);
-        }
-    }
-
-    const deleteChess = (res, x, y) => {
-        var chess_to_delete = document.getElementById(JSON.stringify({ x: x, y: y }));
-        board.removeChild(chess_to_delete);
-        res[x * 9 + y].faction = res[x * 9 + y].division = "null"
-    }
-
-    const moveChess = (faction, division, location, curr_x, curr_y, tar_x, tar_y, board) => {
-        deleteChess(res, curr_x, curr_y);
-        renderChess(res, faction, division, location, tar_x, tar_y);
-        var availableLocation = Array.from(document.getElementsByClassName("expected"));
-        availableLocation.map((item) => {
-            board.removeChild(item);
-        })
-    }
-    res.map((item) => {
-        renderChess(res, item.faction, item.division, availableLocations, item.row, item.col)
-    })
-    // get available location based on basic moving rules
-    // args -- 
-    // division: '炮', '兵', etc, 
-    // curr_loc: {x:x, y:y}: index of location, e.g. 5, 1 means the point on row 2, collum 6
-    const getAvailableLoc = (division, curr_loc) => {
-        var targets = [];
-        left_slot = []// number of all other points on the left
-        for (var i = 1; i <= curr_loc.y; i++) {
-            left_slot.push(i)
-        }
-        var right_slot = [] // number of all other points on the right
-        for (var i = 1; i <= 8 - curr_loc.y; i++) {
-            right_slot.push(i)
-        }
-        var above_slot = []// number of all other points above
-        for (var i = 1; i <= curr_loc.x; i++) {
-            above_slot.push(i)
-        }
-        var below_slot = [] // number of all other points below
-        for (var i = 1; i <= 9 - curr_loc.x; i++) {
-            below_slot.push(i)
-        }
-        var horse_slot = [
-            { x: curr_loc.x - 1, y: curr_loc.y - 2 },
-            { x: curr_loc.x - 1, y: curr_loc.y + 2 },
-            { x: curr_loc.x - 2, y: curr_loc.y - 1 },
-            { x: curr_loc.x - 2, y: curr_loc.y + 1 },
-            { x: curr_loc.x + 1, y: curr_loc.y - 2 },
-            { x: curr_loc.x + 1, y: curr_loc.y + 2 },
-            { x: curr_loc.x + 2, y: curr_loc.y - 1 },
-            { x: curr_loc.x + 2, y: curr_loc.y + 1 },
-        ].filter((item) => item.x >= 0 && item.x <= 9 && item.y >= 0 && item.y <= 8) // number of all other points for horse
-
-        var elephant_slot = [
-            { x: curr_loc.x - 2, y: curr_loc.y - 2 },
-            { x: curr_loc.x - 2, y: curr_loc.y + 2 },
-            { x: curr_loc.x + 2, y: curr_loc.y - 2 },
-            { x: curr_loc.x + 2, y: curr_loc.y + 2 },
-        ].filter((item) => item.x >= 0 && item.x <= 9 && item.y >= 0 && item.y <= 8) // number of all other points for elephant
-
-        switch (division) {
-            case '砲':
-            case '炮':
-                if (left_slot.length != 0) {
-                    left_slot.map((item) => {
-                        targets.push({ x: curr_loc.x, y: curr_loc.y - item })
-                    })
-                }
-                if (right_slot.length != 0) {
-                    right_slot.map((item) => {
-                        targets.push({ x: curr_loc.x, y: curr_loc.y + item })
-                    })
-                }
-                if (above_slot.length != 0) {
-                    above_slot.map((item) => {
-                        targets.push({ x: curr_loc.x - item, y: curr_loc.y })
-                    })
-                }
-                if (below_slot.length != 0) {
-                    below_slot.map((item) => {
-                        targets.push({ x: curr_loc.x + item, y: curr_loc.y })
-                    })
-                }
-                break
-            case '馬':
-                if (horse_slot.length != 0) {
-                    horse_slot.map((item) => {
-                        targets.push(item)
-                    })
-                }
-                break;
-            case '相':
-            case '象':
-                if (elephant_slot.length != 0) {
-                    elephant_slot.map((item) => {
-                        targets.push(item)
-                    })
-                }
-                break;
-        }
-
-        var targets_filtered = []
-
-        targets.map((item) => {
-            const occupation = checkWhetherOccupied(res, item.x, item.y)
-            if (occupation == "empty") {
-                targets_filtered.push({ x: item.x, y: item.y })
-            }
-        })
-
-        return targets_filtered;
-    }
-    // check whether a point is occupied
-    const checkWhetherOccupied = (layout, row, col) => {
-        const test = layout[row * 9 + col]
-        if (test.faction == "null" || layout[row * 9 + col].division == "null") {
-            return "empty"
-        }
-        else {
-            return { fac: test.faction, div: test.division }
-        }
-    }
-}
-)
-
 // all cells
 const cellList = Array.from(document.getElementsByTagName("li")).filter((li) => {
     return li.childNodes.length != 3 && li.id == "";
@@ -250,10 +57,8 @@ const getCoordinates = (cellList) => {
 // all coordinates available for chess
 const availableLocations = getCoordinates(cellList)
 
-
 var username;
 var registerStatus = document.getElementById("registerStatus");
-
 var join = document.createElement("button");
 join.innerText = "Join Game";
 join.addEventListener("click", () => {
@@ -267,6 +72,13 @@ join.addEventListener("click", () => {
                 registerStatus.appendChild(welcome);
                 registerStatus.removeChild(join)
 
+                if (username == "Chu") {
+                    document.getElementById("title").style.transform = "rotate(180deg)";
+                    document.getElementById("outBorder").style.transform = "rotate(180deg)";
+                    document.getElementById("chuhe").style.transform = "rotate(180deg)";
+                    document.getElementById("hanjie").style.transform = "rotate(180deg)";
+                }
+
                 var logout = document.createElement("button")
                 logout.innerText = "Leave Game";
                 logout.addEventListener("click", () => {
@@ -276,8 +88,205 @@ join.addEventListener("click", () => {
                     registerStatus.removeChild(logout);
                 })
                 registerStatus.appendChild(logout)
+
+                // get all chesses
+                var chessLayout = fetch(`${baseUrl}/status?player=${username}`, { method: 'POST' })
+                    .then(
+                        (res) => {
+                            return (res.text().then((res) => {
+                                return Array.from(JSON.parse("[" + res + "]"))
+                            }))
+                        })
+
+                chessLayout.then((res) => {
+                    // render a chess, 
+                    // args -- 
+                    // faction: black or red; 
+                    // division: '炮', '兵', etc, 
+                    // location: e.g. availableLocations, 
+                    // x&y: index of location, e.g. x=5, y=1 means the point on row 6, collum 2
+                    const renderChess = (res, faction, division, location, x, y) => {
+                        if (faction == "null" || division == "null") {
+                            return null;
+                        } else {
+                            res[x * 9 + y].faction = faction;
+                            res[x * 9 + y].division = division;
+                            var chess = document.createElement('div');
+                            chess.className = `chessPieces ${faction}`;
+                            var innerDiv = document.createElement('div');
+                            var spanElement = document.createElement('span');
+                            spanElement.className = "divisionName";
+                            spanElement.textContent = division;
+                            innerDiv.appendChild(spanElement);
+                            chess.id = JSON.stringify({ x: x, y: y })
+                            chess.appendChild(innerDiv);
+                            chess.style.position = "absolute"
+                            chess.style.left = location[x][y].x + 47.5;
+                            chess.style.top = location[x][y].y + 65;
+                            chess.addEventListener("click", () => {
+                                try {
+                                    curr_loc = JSON.parse(chess.id)
+                                    // var available_loc = [{ x: curr_loc.x + 1, y: curr_loc.y + 1 }, { x: curr_loc.x + 0, y: curr_loc.y + 1 }]
+                                    // var available_loc = getAvailableLoc(division, curr_loc)
+                                    var available_loc;
+                                    available_loc = getAvailableLoc(division, curr_loc)
+                                    // console.log(available_loc, available_loc.length)
+                                    available_loc.map((item) => {
+                                        var availableLocation = document.createElement('div');
+                                        availableLocation.className = "chessPieces expected";
+                                        availableLocation.style.position = "absolute"
+                                        availableLocation.style.left = location[item.x][item.y].x + 47.5;
+                                        availableLocation.style.top = location[item.x][item.y].y + 65;
+                                        availableLocation.addEventListener("click", () => {
+                                            moveChess(faction, division, location, x, y, item.x, item.y, board)
+                                        })
+                                        board.appendChild(availableLocation);
+                                        chess.addEventListener("dblclick", () => {
+                                            try {
+                                                board.removeChild(availableLocation)
+                                            }
+                                            catch (e) {
+                                                console.log(e)
+                                            }
+                                        })
+                                    })
+                                } catch (e) {
+                                    console.log(e)
+                                }
+                            })
+                            board.appendChild(chess);
+                        }
+                    }
+
+                    const deleteChess = (res, x, y) => {
+                        var chess_to_delete = document.getElementById(JSON.stringify({ x: x, y: y }));
+                        board.removeChild(chess_to_delete);
+                        res[x * 9 + y].faction = res[x * 9 + y].division = "null"
+                    }
+
+                    const moveChess = (faction, division, location, curr_x, curr_y, tar_x, tar_y, board) => {
+                        deleteChess(res, curr_x, curr_y);
+                        renderChess(res, faction, division, location, tar_x, tar_y);
+                        var availableLocation = Array.from(document.getElementsByClassName("expected"));
+                        availableLocation.map((item) => {
+                            board.removeChild(item);
+                        })
+                    }
+                    res.map((item) => {
+                        renderChess(res, item.faction, item.division, availableLocations, item.row, item.col)
+                    })
+                    // get available location based on basic moving rules
+                    // args -- 
+                    // division: '炮', '兵', etc, 
+                    // curr_loc: {x:x, y:y}: index of location, e.g. 5, 1 means the point on row 2, collum 6
+                    const getAvailableLoc = (division, curr_loc) => {
+                        var targets = [];
+                        left_slot = []// number of all other points on the left
+                        for (var i = 1; i <= curr_loc.y; i++) {
+                            left_slot.push(i)
+                        }
+                        var right_slot = [] // number of all other points on the right
+                        for (var i = 1; i <= 8 - curr_loc.y; i++) {
+                            right_slot.push(i)
+                        }
+                        var above_slot = []// number of all other points above
+                        for (var i = 1; i <= curr_loc.x; i++) {
+                            above_slot.push(i)
+                        }
+                        var below_slot = [] // number of all other points below
+                        for (var i = 1; i <= 9 - curr_loc.x; i++) {
+                            below_slot.push(i)
+                        }
+                        var horse_slot = [
+                            { x: curr_loc.x - 1, y: curr_loc.y - 2 },
+                            { x: curr_loc.x - 1, y: curr_loc.y + 2 },
+                            { x: curr_loc.x - 2, y: curr_loc.y - 1 },
+                            { x: curr_loc.x - 2, y: curr_loc.y + 1 },
+                            { x: curr_loc.x + 1, y: curr_loc.y - 2 },
+                            { x: curr_loc.x + 1, y: curr_loc.y + 2 },
+                            { x: curr_loc.x + 2, y: curr_loc.y - 1 },
+                            { x: curr_loc.x + 2, y: curr_loc.y + 1 },
+                        ].filter((item) => item.x >= 0 && item.x <= 9 && item.y >= 0 && item.y <= 8) // number of all other points for horse
+
+                        var elephant_slot = [
+                            { x: curr_loc.x - 2, y: curr_loc.y - 2 },
+                            { x: curr_loc.x - 2, y: curr_loc.y + 2 },
+                            { x: curr_loc.x + 2, y: curr_loc.y - 2 },
+                            { x: curr_loc.x + 2, y: curr_loc.y + 2 },
+                        ].filter((item) => item.x >= 0 && item.x <= 9 && item.y >= 0 && item.y <= 8) // number of all other points for elephant
+
+                        switch (division) {
+                            case '砲':
+                            case '炮':
+                                if (left_slot.length != 0) {
+                                    left_slot.map((item) => {
+                                        targets.push({ x: curr_loc.x, y: curr_loc.y - item })
+                                    })
+                                }
+                                if (right_slot.length != 0) {
+                                    right_slot.map((item) => {
+                                        targets.push({ x: curr_loc.x, y: curr_loc.y + item })
+                                    })
+                                }
+                                if (above_slot.length != 0) {
+                                    above_slot.map((item) => {
+                                        targets.push({ x: curr_loc.x - item, y: curr_loc.y })
+                                    })
+                                }
+                                if (below_slot.length != 0) {
+                                    below_slot.map((item) => {
+                                        targets.push({ x: curr_loc.x + item, y: curr_loc.y })
+                                    })
+                                }
+                                break
+                            case '馬':
+                                if (horse_slot.length != 0) {
+                                    horse_slot.map((item) => {
+                                        targets.push(item)
+                                    })
+                                }
+                                break;
+                            case '相':
+                            case '象':
+                                if (elephant_slot.length != 0) {
+                                    elephant_slot.map((item) => {
+                                        targets.push(item)
+                                    })
+                                }
+                                break;
+                        }
+
+                        var targets_filtered = []
+
+                        targets.map((item) => {
+                            const occupation = checkWhetherOccupied(res, item.x, item.y)
+                            if (occupation == "empty") {
+                                targets_filtered.push({ x: item.x, y: item.y })
+                            }
+                        })
+
+                        return targets_filtered;
+                    }
+                    // check whether a point is occupied
+                    const checkWhetherOccupied = (layout, row, col) => {
+                        const test = layout[row * 9 + col]
+                        if (test.faction == "null" || layout[row * 9 + col].division == "null") {
+                            return "empty"
+                        }
+                        else {
+                            return { fac: test.faction, div: test.division }
+                        }
+                    }
+                }
+                ).catch(() => { console.log("invalid request") })
             })
         }
     )
 })
 registerStatus.appendChild(join);
+
+
+window.addEventListener("beforeunload", (e) => {
+    e.preventDefault();
+    e.returnValue = "";
+})
