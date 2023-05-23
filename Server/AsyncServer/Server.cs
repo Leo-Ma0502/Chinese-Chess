@@ -160,6 +160,8 @@ namespace AsyncServer
         {
             IPEndPoint ipEndPoint = new(ip, port);
 
+            var waitingQueue = new List<string?>();
+
             using Socket listener = new(
                 ipEndPoint.AddressFamily,
                 SocketType.Stream,
@@ -174,6 +176,11 @@ namespace AsyncServer
             {
                 var handler = await listener.AcceptAsync();
                 current_conn++;
+                waitingQueue.Add(handler.RemoteEndPoint?.ToString());
+                for (int i = 0; i < waitingQueue.Count; i++)
+                {
+                    Console.WriteLine(waitingQueue[i]);
+                }
                 Console.WriteLine("{0} connected, current connection: {1}", handler.RemoteEndPoint, current_conn);
                 new Thread(async () =>
                 {
