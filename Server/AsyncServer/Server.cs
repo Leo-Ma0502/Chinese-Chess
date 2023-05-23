@@ -177,10 +177,6 @@ namespace AsyncServer
                 var handler = await listener.AcceptAsync();
                 current_conn++;
                 waitingQueue.Add(handler.RemoteEndPoint?.ToString());
-                for (int i = 0; i < waitingQueue.Count; i++)
-                {
-                    Console.WriteLine(waitingQueue[i]);
-                }
                 Console.WriteLine("{0} connected, current connection: {1}", handler.RemoteEndPoint, current_conn);
                 new Thread(async () =>
                 {
@@ -193,6 +189,7 @@ namespace AsyncServer
                         if (received == 0)
                         {
                             current_conn--;
+                            waitingQueue.Remove(handler.RemoteEndPoint?.ToString());
                             Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
                             break;
                         }
@@ -203,6 +200,10 @@ namespace AsyncServer
 
                     }
                 }).Start();
+                for (int i = 0; i < waitingQueue.Count; i++)
+                {
+                    Console.WriteLine(waitingQueue[i]);
+                }
             }
         }
         // parse params from request like /A?B=x&C=y...
