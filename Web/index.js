@@ -86,11 +86,13 @@ join.addEventListener("click", () => {
                     registerStatus.appendChild(join);
                     registerStatus.removeChild(welcome);
                     registerStatus.removeChild(logout);
+                    alert("You have left game")
+                    location.reload()
                 })
                 registerStatus.appendChild(logout)
 
                 // get all chesses
-                var chessLayout = fetch(`${baseUrl}/status?player=${username}`, { method: 'POST' })
+                var chessLayout = fetch(`${baseUrl}/initialstatus?player=${username}`, { method: 'POST' })
                     .then(
                         (res) => {
                             return (res.text().then((res) => {
@@ -125,12 +127,13 @@ join.addEventListener("click", () => {
                             chess.style.top = location[x][y].y + 65;
                             chess.addEventListener("click", () => {
                                 try {
+                                    var others = document.getElementsByClassName("chessPieces expected");
+                                    if (others.length != 0) {
+                                        Array.from(others).map((item) => board.removeChild(item))
+                                    }
                                     curr_loc = JSON.parse(chess.id)
-                                    // var available_loc = [{ x: curr_loc.x + 1, y: curr_loc.y + 1 }, { x: curr_loc.x + 0, y: curr_loc.y + 1 }]
-                                    // var available_loc = getAvailableLoc(division, curr_loc)
                                     var available_loc;
                                     available_loc = getAvailableLoc(division, curr_loc)
-                                    // console.log(available_loc, available_loc.length)
                                     available_loc.map((item) => {
                                         var availableLocation = document.createElement('div');
                                         availableLocation.className = "chessPieces expected";
@@ -288,5 +291,7 @@ registerStatus.appendChild(join);
 
 window.addEventListener("beforeunload", (e) => {
     e.preventDefault();
-    e.returnValue = "";
+    alert("If you refresh this page, you would be logged out and game data would be lost")
+    location.reload()
+    e.returnValue = ""
 })

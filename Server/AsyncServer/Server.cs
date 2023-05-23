@@ -93,7 +93,6 @@ namespace AsyncServer
                             if (j == 1 || j == 7)
                             {
                                 div = "砲";
-                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
                             }
                             else
                             {
@@ -105,7 +104,6 @@ namespace AsyncServer
                             if (j == 0 || j == 2 || j == 4 || j == 6 || j == 8)
                             {
                                 div = "兵";
-                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
                             }
                             else
                             {
@@ -172,7 +170,7 @@ namespace AsyncServer
             Console.WriteLine("Listening at {0}:{1}", ip, port);
 
             var current_conn = 0; // current connected clients
-            while (current_conn < 3)
+            while (true)
             {
                 var handler = await listener.AcceptAsync();
                 current_conn++;
@@ -207,7 +205,6 @@ namespace AsyncServer
             {
                 int index = Array.IndexOf(parsedReq, paramName);
                 string? paramValue = parsedReq[index + 1];
-                // Console.WriteLine("index of {0}: {1}, temp result: {2}, final result: {3}", paramName, index, parsedReq[index], paramValue);
                 return paramValue;
             }
             else
@@ -225,38 +222,26 @@ namespace AsyncServer
             else
             {
                 // /register: assign user name
-                // if (response.Contains("register"))
-                // {
-                //     string res = "Han";
-                //     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                //     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                //     await handler.SendAsync(echoBytes, SocketFlags.None);
-                //     Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
-                // }
                 string reqString = parsedReq[1];
                 var parsedRqeString = reqString.Split(new char[] { '?', '=', '&' });
-                // for (int i = 0; i < parsedRqeString.Length; i++)
-                // {
-                //     Console.WriteLine(parsedRqeString[i]);
-                // }
                 if (reqString.StartsWith("/register"))
                 {
-                    string res = "Chu";
+                    string res;
+                    if (current_conn % 2 != 0)
+                    {
+                        res = "Han";
+                    }
+                    else
+                    {
+                        res = "Chu";
+                    }
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     await handler.SendAsync(echoBytes, SocketFlags.None);
                     Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
+
                 }
                 // /quit
-                // else if (response.Contains("quit"))
-                // {
-                //     string res = "Bye";
-                //     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                //     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                //     await handler.SendAsync(echoBytes, SocketFlags.None);
-                //     current_conn--;
-                //     Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
-                // }
                 else if (reqString.StartsWith("/quit"))
                 {
                     string res = "Bye";
@@ -266,26 +251,8 @@ namespace AsyncServer
                     current_conn--;
                     Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
                 }
-                // overall status
-                // else if (response.Contains("status"))
-                // {
-                //     string[] temp = new string[90];
-                //     int k = 0;
-                //     for (int i = 0; i < 10; i++)
-                //     {
-                //         for (int j = 0; j < 9; j++)
-                //         {
-                //             temp[k] = this.status[i, j];
-                //             k++;
-                //         }
-                //     }
-                //     string res = string.Join(",", temp);
-                //     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                //     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                //     await handler.SendAsync(echoBytes, SocketFlags.None);
-                //     // Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
-                // }
-                else if (reqString.StartsWith("/status"))
+                // /initialstatus
+                else if (reqString.StartsWith("/initialstatus"))
                 {
                     string res;
                     string[] temp = new string[90];
@@ -317,20 +284,6 @@ namespace AsyncServer
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     await handler.SendAsync(echoBytes, SocketFlags.None);
-                    // int k = 0;
-                    // for (int i = 0; i < 10; i++)
-                    // {
-                    //     for (int j = 0; j < 9; j++)
-                    //     {
-                    //         temp[k] = this.status[i, j];
-                    //         k++;
-                    //     }
-                    // }
-                    // string res = string.Join(",", temp);
-                    // string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                    // var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                    // await handler.SendAsync(echoBytes, SocketFlags.None);
-                    // Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
                 }
             }
         }
