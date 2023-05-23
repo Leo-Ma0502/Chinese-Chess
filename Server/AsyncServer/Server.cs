@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -9,6 +10,7 @@ namespace AsyncServer
         private readonly IPAddress ip;
         private readonly int port;
         private string[,] status;
+        private List<string?> waitingQueue = new();
         public Server(IPAddress ip, int port, object[,] status)
         {
             this.ip = ip;
@@ -160,8 +162,6 @@ namespace AsyncServer
         {
             IPEndPoint ipEndPoint = new(ip, port);
 
-            var waitingQueue = new List<string?>();
-
             using Socket listener = new(
                 ipEndPoint.AddressFamily,
                 SocketType.Stream,
@@ -178,6 +178,7 @@ namespace AsyncServer
                 current_conn++;
                 waitingQueue.Add(handler.RemoteEndPoint?.ToString());
                 Console.WriteLine("{0} connected, current connection: {1}", handler.RemoteEndPoint, current_conn);
+                // each connection occupies 1 thread
                 new Thread(async () =>
                 {
                     // Receive message.
@@ -200,10 +201,6 @@ namespace AsyncServer
 
                     }
                 }).Start();
-                for (int i = 0; i < waitingQueue.Count; i++)
-                {
-                    Console.WriteLine(waitingQueue[i]);
-                }
             }
         }
         // parse params from request like /A?B=x&C=y...
@@ -222,78 +219,168 @@ namespace AsyncServer
         }
         private async Task RespondClient(string response, Socket handler, int current_conn)
         {
-            var parsedReq = response.Contains(" ") ? response.Split(" ") : new string[1] { response };
-            if (parsedReq.Length == 1)
+            // pair players in 2 and assign them with different threads
+            Console.WriteLine("waiting queue: " + waitingQueue.Count);
+            int index = 0;
+            while (waitingQueue.Count != 0)
             {
-                Console.WriteLine(parsedReq[0]);
-            }
-            else
-            {
-                // /register: assign user name
-                string reqString = parsedReq[1];
-                var parsedRqeString = reqString.Split(new char[] { '?', '=', '&' });
-                if (reqString.StartsWith("/register"))
+                if (waitingQueue.Count > 1)
                 {
-                    string res;
-                    if (current_conn % 2 != 0)
+                    var player1 = waitingQueue[index];
+                    var player2 = waitingQueue[index + 1];
+                    string? gameid = player1 + player2;
+                    waitingQueue.Remove(player1);
+                    waitingQueue.Remove(player2);
+                    new Thread(async () =>
                     {
-                        res = "Han";
-                    }
-                    else
-                    {
-                        res = "Chu";
-                    }
-                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                    await handler.SendAsync(echoBytes, SocketFlags.None);
-                    Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
-
-                }
-                // /quit
-                else if (reqString.StartsWith("/quit"))
-                {
-                    string res = "Bye";
-                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                    await handler.SendAsync(echoBytes, SocketFlags.None);
-                    current_conn--;
-                    Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
-                }
-                // /initialstatus
-                else if (reqString.StartsWith("/initialstatus"))
-                {
-                    string res;
-                    string[] temp = new string[90];
-                    try
-                    {
-                        string? player = getParams(parsedRqeString, "player");
-                        if (player != null && (player.Equals("Han") || player.Equals("Chu")))
+                        Console.WriteLine("a new game generated with game id {0}", gameid);
+                        var parsedReq = response.Contains(" ") ? response.Split(" ") : new string[1] { response };
+                        if (parsedReq.Length == 1)
                         {
-                            int k = 0;
-                            for (int i = 0; i < 10; i++)
-                            {
-                                for (int j = 0; j < 9; j++)
-                                {
-                                    temp[k] = this.status[i, j];
-                                    k++;
-                                }
-                            }
-                            res = string.Join(",", temp);
+                            Console.WriteLine(parsedReq[0]);
                         }
                         else
                         {
-                            res = "invalid request";
+                            // /register: assign user name
+                            string reqString = parsedReq[1];
+                            var parsedRqeString = reqString.Split(new char[] { '?', '=', '&' });
+                            if (reqString.StartsWith("/register"))
+                            {
+                                string res;
+                                if (current_conn % 2 != 0)
+                                {
+                                    res = "Han";
+                                }
+                                else
+                                {
+                                    res = "Chu";
+                                }
+                                string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                                var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                                await handler.SendAsync(echoBytes, SocketFlags.None);
+                                Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
+
+                            }
+                            // /quit
+                            else if (reqString.StartsWith("/quit"))
+                            {
+                                string res = "Bye";
+                                string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                                var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                                await handler.SendAsync(echoBytes, SocketFlags.None);
+                                current_conn--;
+                                Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
+                            }
+                            // /initialstatus
+                            else if (reqString.StartsWith("/initialstatus"))
+                            {
+                                string res;
+                                string[] temp = new string[90];
+                                try
+                                {
+                                    string? player = getParams(parsedRqeString, "player");
+                                    if (player != null && (player.Equals("Han") || player.Equals("Chu")))
+                                    {
+                                        int k = 0;
+                                        for (int i = 0; i < 10; i++)
+                                        {
+                                            for (int j = 0; j < 9; j++)
+                                            {
+                                                temp[k] = this.status[i, j];
+                                                k++;
+                                            }
+                                        }
+                                        res = string.Join(",", temp);
+                                    }
+                                    else
+                                    {
+                                        res = "invalid request";
+                                    }
+                                }
+                                catch
+                                {
+                                    res = "invalid request";
+                                }
+                                string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                                var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                                await handler.SendAsync(echoBytes, SocketFlags.None);
+                            }
                         }
-                    }
-                    catch
-                    {
-                        res = "invalid request";
-                    }
-                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                    await handler.SendAsync(echoBytes, SocketFlags.None);
+                    }).Start();
                 }
             }
+            // var parsedReq = response.Contains(" ") ? response.Split(" ") : new string[1] { response };
+            // if (parsedReq.Length == 1)
+            // {
+            //     Console.WriteLine(parsedReq[0]);
+            // }
+            // else
+            // {
+            //     // /register: assign user name
+            //     string reqString = parsedReq[1];
+            //     var parsedRqeString = reqString.Split(new char[] { '?', '=', '&' });
+            //     if (reqString.StartsWith("/register"))
+            //     {
+            //         string res;
+            //         if (current_conn % 2 != 0)
+            //         {
+            //             res = "Han";
+            //         }
+            //         else
+            //         {
+            //             res = "Chu";
+            //         }
+            //         string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+            //         var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+            //         await handler.SendAsync(echoBytes, SocketFlags.None);
+            //         Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
+
+            //     }
+            //     // /quit
+            //     else if (reqString.StartsWith("/quit"))
+            //     {
+            //         string res = "Bye";
+            //         string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+            //         var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+            //         await handler.SendAsync(echoBytes, SocketFlags.None);
+            //         current_conn--;
+            //         Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
+            //     }
+            //     // /initialstatus
+            //     else if (reqString.StartsWith("/initialstatus"))
+            //     {
+            //         string res;
+            //         string[] temp = new string[90];
+            //         try
+            //         {
+            //             string? player = getParams(parsedRqeString, "player");
+            //             if (player != null && (player.Equals("Han") || player.Equals("Chu")))
+            //             {
+            //                 int k = 0;
+            //                 for (int i = 0; i < 10; i++)
+            //                 {
+            //                     for (int j = 0; j < 9; j++)
+            //                     {
+            //                         temp[k] = this.status[i, j];
+            //                         k++;
+            //                     }
+            //                 }
+            //                 res = string.Join(",", temp);
+            //             }
+            //             else
+            //             {
+            //                 res = "invalid request";
+            //             }
+            //         }
+            //         catch
+            //         {
+            //             res = "invalid request";
+            //         }
+            //         string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+            //         var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+            //         await handler.SendAsync(echoBytes, SocketFlags.None);
+            //     }
+            // }
         }
     }
 }
