@@ -8,16 +8,14 @@ namespace AsyncServer
     {
         private readonly IPAddress ip;
         private readonly int port;
-        private string[,] status;
         private List<string> waitingQueue = new();
         private List<GameRecord> gameRecords = new();
-        public Server(IPAddress ip, int port, object[,] status)
+        public Server(IPAddress ip, int port)
         {
             this.ip = ip;
             this.port = port;
-            this.status = getStatus(); // global status of combat
-            // gameRecords.Add(new GameRecord(0, "invalid", "invalid", "invalid"));
         }
+        // global status of combat
         private static string[,] getStatus()
         {
             var temp = new string[10, 9];
@@ -66,17 +64,14 @@ namespace AsyncServer
                             else if (j == 2 || j == 6)
                             {
                                 div = "象";
-                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
                             }
                             else if (j == 3 || j == 5)
                             {
                                 div = "士";
-                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
                             }
                             else if (j == 4)
                             {
                                 div = "將";
-                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
                             }
                             else
                             {
@@ -337,17 +332,20 @@ namespace AsyncServer
                 {
                     string res;
                     string[] temp = new string[90];
+                    string player = getParams(reqString, "player").Trim();
+                    string gameID = getParams(reqString, "gameID").Trim();
                     try
                     {
-                        string? player = getParams(reqString, "player");
-                        if (player != null && (player.Equals("Han") || player.Equals("Chu")))
+                        if (player != null && !player.Equals("null") && gameID != null && !gameID.Equals("null"))
                         {
                             int k = 0;
                             for (int i = 0; i < 10; i++)
                             {
                                 for (int j = 0; j < 9; j++)
                                 {
-                                    temp[k] = this.status[i, j];
+                                    // temp[k] = this.status[i, j];
+                                    var record = gameRecords.Find(record => record.gameID.ToString().Equals(gameID));
+                                    temp[k] = record.initialStatus[i, j];
                                     k++;
                                 }
                             }
@@ -419,7 +417,7 @@ namespace AsyncServer
             else
             {
                 // no other players waiting
-                GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler, null);
+                GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler, null, getStatus());
                 gameRecords.Add(waiting);
                 int currGID = gameRecords[gameRecords.IndexOf(waiting)].gameID;
 

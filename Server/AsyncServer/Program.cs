@@ -6,8 +6,7 @@ namespace AsyncServer
     {
         static async Task Main(string[] args)
         {
-            Server server = new(IPAddress.Loopback, 8081, new object[10, 9]);
-
+            Server server = new(IPAddress.Loopback, 8081);
             await server.Serve();
         }
     }
