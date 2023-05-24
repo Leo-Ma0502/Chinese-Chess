@@ -184,20 +184,24 @@ namespace AsyncServer
                     // Receive message.
                     while (true)
                     {
-                        var buffer = new byte[1_024];
-                        var received = await handler.ReceiveAsync(buffer, SocketFlags.None);
-                        var response = Encoding.UTF8.GetString(buffer, 0, received);
-                        if (received == 0)
+                        try
                         {
-                            current_conn--;
-                            Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
-                            // HandleOffline(handler);
-                            break;
+                            var buffer = new byte[1_024];
+                            var received = await handler.ReceiveAsync(buffer, SocketFlags.None);
+                            var response = Encoding.UTF8.GetString(buffer, 0, received);
+                            if (received == 0)
+                            {
+                                current_conn--;
+                                Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
+                                HandleOffline(handler);
+                                break;
+                            }
+                            else
+                            {
+                                RespondClient(response, handler, current_conn);
+                            }
                         }
-                        else
-                        {
-                            RespondClient(response, handler, current_conn);
-                        }
+                        catch { Console.WriteLine("connection lost"); };
                     }
                 }).Start();
             }
@@ -209,7 +213,14 @@ namespace AsyncServer
             {
                 int index = Array.IndexOf(parsedReq, paramName);
                 string paramValue = parsedReq[index + 1];
-                return paramValue;
+                if (paramValue.Trim().Length != 0)
+                {
+                    return paramValue.Trim();
+                }
+                else
+                {
+                    return "null";
+                }
             }
             else
             {
@@ -238,9 +249,9 @@ namespace AsyncServer
                 else if (reqString[startingIndex].Trim().Equals("/pair"))
                 {
                     string res;
+                    string player = getParams(reqString, "player");
                     try
                     {
-                        string player = getParams(reqString, "player");
                         if (player != null && !player.Equals("null"))
                         {
                             GameRecord? existing = gameRecords.Find(re => re.player1.Trim().Equals(player.Trim()) || re.player2.Trim().Equals(player.Trim()));
@@ -272,7 +283,19 @@ namespace AsyncServer
                     PrintRecord(gameRecords);
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                    await handler.SendAsync(echoBytes, SocketFlags.None);
+                    try
+                    {
+                        await handler.SendAsync(echoBytes, SocketFlags.None);
+                    }
+                    catch
+                    {
+                        Console.WriteLine("Connection lost");
+                        // if (player != null && waitingQueue.Contains(player))
+                        // {
+                        //     waitingQueue.Remove(player);
+                        // }
+                    }
+
                 }
                 // /quit
                 else if (reqString[startingIndex].Trim().Equals("/quit"))
@@ -357,7 +380,7 @@ namespace AsyncServer
                 // pair this player with another waiting player and delete both of them from waiting pool
                 foreach (var item in gameRecords)
                 {
-                    if (item.player1 == waitingQueue[0])
+                    if (item.player1 == waitingQueue[0] && item.status.Equals("wait"))
                     {
                         item.player2 = player;
                         item.status = "progress";
@@ -380,15 +403,18 @@ namespace AsyncServer
                     res = "You have been added to the waiting queue, searching for another player...";
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                    if (CheckConnection(handler))
-                    {
-                        handler.Send(echoBytes, SocketFlags.None);
-                    }
+
+                    handler.Send(echoBytes, SocketFlags.None);
                     Thread.Sleep(500);
+
+                    // if (CheckConnection(handler) == false)
+                    // {
+                    //     gameRecords.Remove(gameRecords[currGID]);
+                    //     waitingQueue.Remove(player);
+                    //     break;
+                    // }
                 }
-
                 res = string.Format("You have been paired with {0}, good luck!", gameRecords[currGID].player2);
-
             }
             return res;
         }
@@ -403,7 +429,7 @@ namespace AsyncServer
         }
         private void HandleOffline(Socket handler)
         {
-            var relatedRecord = gameRecords.Find(item => item.epPlayer1.RemoteEndPoint.ToString().Equals(handler.RemoteEndPoint.ToString()) || item.epPlayer2.RemoteEndPoint.ToString().Equals(handler.RemoteEndPoint.ToString()));
+            var relatedRecord = gameRecords.Find(item => (item.epPlayer1.RemoteEndPoint.ToString().Equals(handler.RemoteEndPoint.ToString()) || item.epPlayer2.RemoteEndPoint.ToString().Equals(handler.RemoteEndPoint.ToString())) && !item.status.Equals("terminated"));
             if (relatedRecord != null)
             {
                 // change related game record
@@ -422,8 +448,24 @@ namespace AsyncServer
                             var res = "This game has been terminated because the other player went offline";
                             string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                             var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                            item.epPlayer1?.Send(echoBytes, SocketFlags.None);
-                            item.epPlayer2?.Send(echoBytes, SocketFlags.None);
+                            if (waitingQueue.Contains(item.player1))
+                            {
+                                waitingQueue.Remove(item.player1);
+                            }
+                            if (waitingQueue.Contains(item.player2))
+                            {
+                                waitingQueue.Remove(item.player2);
+                            }
+                            try
+                            {
+                                item.epPlayer1?.Send(echoBytes, SocketFlags.None);
+                                item.epPlayer2?.Send(echoBytes, SocketFlags.None);
+                            }
+                            catch
+                            {
+                                Console.WriteLine("Game Closed");
+                            }
+
                         }
                     }
 
