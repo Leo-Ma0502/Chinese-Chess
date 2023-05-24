@@ -431,6 +431,7 @@ namespace AsyncServer
             }
         }
 
+        // check connection on each socket 
         private Boolean CheckConnection(Socket handler)
         {
             var buffer = new byte[1_024];
