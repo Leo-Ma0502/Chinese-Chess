@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -10,12 +9,14 @@ namespace AsyncServer
         private readonly IPAddress ip;
         private readonly int port;
         private string[,] status;
-        private List<string?> waitingQueue = new();
+        private List<string> waitingQueue = new();
+        private List<GameRecord> gameRecords = new();
         public Server(IPAddress ip, int port, object[,] status)
         {
             this.ip = ip;
             this.port = port;
             this.status = getStatus(); // global status of combat
+            // gameRecords.Add(new GameRecord(0, "invalid", "invalid", "invalid"));
         }
         private static string[,] getStatus()
         {
@@ -176,7 +177,6 @@ namespace AsyncServer
             {
                 var handler = await listener.AcceptAsync();
                 current_conn++;
-                waitingQueue.Add(handler.RemoteEndPoint?.ToString());
                 Console.WriteLine("{0} connected, current connection: {1}", handler.RemoteEndPoint, current_conn);
                 // each connection occupies 1 thread
                 new Thread(async () =>
@@ -190,13 +190,12 @@ namespace AsyncServer
                         if (received == 0)
                         {
                             current_conn--;
-                            waitingQueue.Remove(handler.RemoteEndPoint?.ToString());
                             Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
                             break;
                         }
                         else
                         {
-                            await RespondClient(response, handler, current_conn);
+                            RespondClient(response, handler, current_conn);
                         }
 
                     }
@@ -204,12 +203,12 @@ namespace AsyncServer
             }
         }
         // parse params from request like /A?B=x&C=y...
-        private string? getParams(string[] parsedReq, string paramName)
+        private string getParams(string[] parsedReq, string paramName)
         {
             if (parsedReq.Contains(paramName))
             {
                 int index = Array.IndexOf(parsedReq, paramName);
-                string? paramValue = parsedReq[index + 1];
+                string paramValue = parsedReq[index + 1];
                 return paramValue;
             }
             else
@@ -217,170 +216,182 @@ namespace AsyncServer
                 return "null";
             }
         }
-        private async Task RespondClient(string response, Socket handler, int current_conn)
+        private void RespondClient(string response, Socket handler, int current_conn)
         {
-            // pair players in 2 and assign them with different threads
-            Console.WriteLine("waiting queue: " + waitingQueue.Count);
-            int index = 0;
-            while (waitingQueue.Count != 0)
+            new Thread(async () =>
             {
-                if (waitingQueue.Count > 1)
+                // parse request
+                var reqString = response.Split(new char[] { ' ', '?', '=', '&' });
+                int startingIndex = reqString[0].Equals("GET") || reqString[0].Equals("POST") || reqString[0].Equals(" ") ? 1 : 0;
+
+                // /register: assign user name
+                if (reqString[startingIndex].Trim().Equals("/register"))
                 {
-                    var player1 = waitingQueue[index];
-                    var player2 = waitingQueue[index + 1];
-                    string? gameid = player1 + player2;
-                    waitingQueue.Remove(player1);
-                    waitingQueue.Remove(player2);
-                    new Thread(async () =>
+                    string res = GetRandomName();
+                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                    await handler.SendAsync(echoBytes, SocketFlags.None);
+                    Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
+
+                }
+                // /pair
+                else if (reqString[startingIndex].Trim().Equals("/pair"))
+                {
+                    string res;
+                    try
                     {
-                        Console.WriteLine("a new game generated with game id {0}", gameid);
-                        var parsedReq = response.Contains(" ") ? response.Split(" ") : new string[1] { response };
-                        if (parsedReq.Length == 1)
+                        string player = getParams(reqString, "player");
+                        if (player != null && !player.Equals("null"))
                         {
-                            Console.WriteLine(parsedReq[0]);
-                        }
-                        else
-                        {
-                            // /register: assign user name
-                            string reqString = parsedReq[1];
-                            var parsedRqeString = reqString.Split(new char[] { '?', '=', '&' });
-                            if (reqString.StartsWith("/register"))
+                            GameRecord? existing = gameRecords.Find(re => re.player1.Trim().Equals(player.Trim()) || re.player2.Trim().Equals(player.Trim()));
+                            if (existing != null)
                             {
-                                string res;
-                                if (current_conn % 2 != 0)
+                                if (existing.status.Trim().Equals("progress"))
                                 {
-                                    res = "Han";
+                                    res = "You cannot request for pairing while in a progressing game";
                                 }
                                 else
                                 {
-                                    res = "Chu";
+                                    res = PairUp(player);
                                 }
-                                string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                                var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                                await handler.SendAsync(echoBytes, SocketFlags.None);
-                                Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
-
                             }
-                            // /quit
-                            else if (reqString.StartsWith("/quit"))
+                            else
                             {
-                                string res = "Bye";
-                                string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                                var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                                await handler.SendAsync(echoBytes, SocketFlags.None);
-                                current_conn--;
-                                Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
-                            }
-                            // /initialstatus
-                            else if (reqString.StartsWith("/initialstatus"))
-                            {
-                                string res;
-                                string[] temp = new string[90];
-                                try
-                                {
-                                    string? player = getParams(parsedRqeString, "player");
-                                    if (player != null && (player.Equals("Han") || player.Equals("Chu")))
-                                    {
-                                        int k = 0;
-                                        for (int i = 0; i < 10; i++)
-                                        {
-                                            for (int j = 0; j < 9; j++)
-                                            {
-                                                temp[k] = this.status[i, j];
-                                                k++;
-                                            }
-                                        }
-                                        res = string.Join(",", temp);
-                                    }
-                                    else
-                                    {
-                                        res = "invalid request";
-                                    }
-                                }
-                                catch
-                                {
-                                    res = "invalid request";
-                                }
-                                string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                                var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                                await handler.SendAsync(echoBytes, SocketFlags.None);
+                                res = PairUp(player);
                             }
                         }
-                    }).Start();
+                        else
+                        {
+                            res = "invalid request, username must be provided";
+                        }
+                    }
+                    catch
+                    {
+                        res = "invalid request";
+                    }
+                    PrintRecord(gameRecords);
+                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                    await handler.SendAsync(echoBytes, SocketFlags.None);
+                }
+                // /quit
+                else if (reqString[startingIndex].Trim().Equals("/quit"))
+                {
+                    string res = "Bye";
+                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                    await handler.SendAsync(echoBytes, SocketFlags.None);
+                    current_conn--;
+                    Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
+                }
+                // /initialstatus
+                else if (reqString[startingIndex].Trim().Equals("/initialstatus"))
+                {
+                    string res;
+                    string[] temp = new string[90];
+                    try
+                    {
+                        string? player = getParams(reqString, "player");
+                        if (player != null && (player.Equals("Han") || player.Equals("Chu")))
+                        {
+                            int k = 0;
+                            for (int i = 0; i < 10; i++)
+                            {
+                                for (int j = 0; j < 9; j++)
+                                {
+                                    temp[k] = this.status[i, j];
+                                    k++;
+                                }
+                            }
+                            res = string.Join(",", temp);
+                        }
+                        else
+                        {
+                            res = "invalid request";
+                        }
+                    }
+                    catch
+                    {
+                        res = "invalid request";
+                    }
+                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                    await handler.SendAsync(echoBytes, SocketFlags.None);
+                }
+                // 404
+                else
+                {
+                    string res = "unsupported request";
+                    string responseHEAD = $"HTTP/1.1 404 NOT FOUND\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                    await handler.SendAsync(echoBytes, SocketFlags.None);
+                }
+            }).Start();
+        }
+        private string GetRandomName()
+        {
+            string charPool = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890";
+            int lengthOfName = new Random().Next(0, charPool.Length);
+            string name = "";
+            for (int i = 0; i < lengthOfName; i++)
+            {
+                name += charPool[new Random().Next(0, charPool.Length)];
+            }
+            name += new Random().Next(100, 1000);
+            return name;
+        }
+        private string PairUp(string player)
+        {
+            string res;
+            if (!waitingQueue.Contains(player))
+            {
+                waitingQueue.Add(player);
+                Console.WriteLine("A new player {0} started waiting in pool", player);
+            }
+            else
+            {
+                Console.WriteLine("{0} is still waiting in pool", player);
+            }
+            if (waitingQueue.Count != 1)
+            {
+                // pair this player with another waiting player and delete both of them from waiting pool
+                foreach (var item in gameRecords)
+                {
+                    if (item.player1 == waitingQueue[0])
+                    {
+                        item.player2 = player;
+                        item.status = "progress";
+                    }
+                }
+                res = string.Format("You have been paired with {0}, good luck!", waitingQueue[0]);
+                waitingQueue.Remove(player);
+                waitingQueue.Remove(waitingQueue[0]);
+            }
+            else
+            {
+                // no other players waiting
+                GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null");
+                gameRecords.Add(waiting);
+
+                if (gameRecords[gameRecords.IndexOf(waiting)].status.Equals("wait"))
+                {
+                    res = "You have been added to the waiting queue, searching for another player...";
+                }
+                else
+                {
+                    res = string.Format("You have been paired with {0}, good luck!", gameRecords[gameRecords.IndexOf(waiting)].player2);
                 }
             }
-            // var parsedReq = response.Contains(" ") ? response.Split(" ") : new string[1] { response };
-            // if (parsedReq.Length == 1)
-            // {
-            //     Console.WriteLine(parsedReq[0]);
-            // }
-            // else
-            // {
-            //     // /register: assign user name
-            //     string reqString = parsedReq[1];
-            //     var parsedRqeString = reqString.Split(new char[] { '?', '=', '&' });
-            //     if (reqString.StartsWith("/register"))
-            //     {
-            //         string res;
-            //         if (current_conn % 2 != 0)
-            //         {
-            //             res = "Han";
-            //         }
-            //         else
-            //         {
-            //             res = "Chu";
-            //         }
-            //         string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-            //         var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-            //         await handler.SendAsync(echoBytes, SocketFlags.None);
-            //         Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
-
-            //     }
-            //     // /quit
-            //     else if (reqString.StartsWith("/quit"))
-            //     {
-            //         string res = "Bye";
-            //         string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-            //         var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-            //         await handler.SendAsync(echoBytes, SocketFlags.None);
-            //         current_conn--;
-            //         Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
-            //     }
-            //     // /initialstatus
-            //     else if (reqString.StartsWith("/initialstatus"))
-            //     {
-            //         string res;
-            //         string[] temp = new string[90];
-            //         try
-            //         {
-            //             string? player = getParams(parsedRqeString, "player");
-            //             if (player != null && (player.Equals("Han") || player.Equals("Chu")))
-            //             {
-            //                 int k = 0;
-            //                 for (int i = 0; i < 10; i++)
-            //                 {
-            //                     for (int j = 0; j < 9; j++)
-            //                     {
-            //                         temp[k] = this.status[i, j];
-            //                         k++;
-            //                     }
-            //                 }
-            //                 res = string.Join(",", temp);
-            //             }
-            //             else
-            //             {
-            //                 res = "invalid request";
-            //             }
-            //         }
-            //         catch
-            //         {
-            //             res = "invalid request";
-            //         }
-            //         string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-            //         var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-            //         await handler.SendAsync(echoBytes, SocketFlags.None);
-            //     }
-            // }
+            return res;
+        }
+        private void PrintRecord(List<GameRecord> list)
+        {
+            string output = "";
+            foreach (var item in list)
+            {
+                output += string.Format("\nID:{0}, status:{1}, player1:{2}, player2:{3}", item.gameID, item.status, item.player1, item.player2);
+            }
+            Console.WriteLine("Game Records: {0}", output);
         }
     }
 }
