@@ -252,12 +252,12 @@ namespace AsyncServer
                                 }
                                 else
                                 {
-                                    res = PairUp(player);
+                                    res = PairUp(player, handler);
                                 }
                             }
                             else
                             {
-                                res = PairUp(player);
+                                res = PairUp(player, handler);
                             }
                         }
                         else
@@ -340,7 +340,7 @@ namespace AsyncServer
             name += new Random().Next(100, 1000);
             return name;
         }
-        private string PairUp(string player)
+        private string PairUp(string player, Socket handler)
         {
             string res;
             if (!waitingQueue.Contains(player))
@@ -372,15 +372,19 @@ namespace AsyncServer
                 // no other players waiting
                 GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null");
                 gameRecords.Add(waiting);
+                int currGID = gameRecords[gameRecords.IndexOf(waiting)].gameID;
 
-                if (gameRecords[gameRecords.IndexOf(waiting)].status.Equals("wait"))
+                while (gameRecords[currGID].status.Equals("wait"))
                 {
                     res = "You have been added to the waiting queue, searching for another player...";
+                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                    handler.Send(echoBytes, SocketFlags.None);
+                    Thread.Sleep(500);
                 }
-                else
-                {
-                    res = string.Format("You have been paired with {0}, good luck!", gameRecords[gameRecords.IndexOf(waiting)].player2);
-                }
+
+                res = string.Format("You have been paired with {0}, good luck!", gameRecords[currGID].player2);
+
             }
             return res;
         }
