@@ -361,6 +361,7 @@ namespace AsyncServer
                     {
                         item.player2 = player;
                         item.status = "progress";
+                        item.epPlayer2 = handler.RemoteEndPoint;
                     }
                 }
                 res = string.Format("You have been paired with {0}, good luck!", waitingQueue[0]);
@@ -370,7 +371,7 @@ namespace AsyncServer
             else
             {
                 // no other players waiting
-                GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null");
+                GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler.RemoteEndPoint, null);
                 gameRecords.Add(waiting);
                 int currGID = gameRecords[gameRecords.IndexOf(waiting)].gameID;
 
@@ -393,7 +394,7 @@ namespace AsyncServer
             string output = "";
             foreach (var item in list)
             {
-                output += string.Format("\nID:{0}, status:{1}, player1:{2}, player2:{3}", item.gameID, item.status, item.player1, item.player2);
+                output += string.Format("\nID:{0}, status:{1}, player1:{2}, player2:{3}, epP1:{4}, epP2:{5}", item.gameID, item.status, item.player1, item.player2, item.epPlayer1?.ToString(), item.epPlayer2?.ToString());
             }
             Console.WriteLine("Game Records: {0}", output);
         }
