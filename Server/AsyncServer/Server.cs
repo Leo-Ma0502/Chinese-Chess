@@ -290,22 +290,47 @@ namespace AsyncServer
                     catch
                     {
                         Console.WriteLine("Connection lost");
-                        // if (player != null && waitingQueue.Contains(player))
-                        // {
-                        //     waitingQueue.Remove(player);
-                        // }
                     }
 
                 }
                 // /quit
                 else if (reqString[startingIndex].Trim().Equals("/quit"))
                 {
-                    string res = "Bye";
+                    string res;
+                    string player = getParams(reqString, "player").Trim();
+                    string gameID = getParams(reqString, "gameID").Trim();
+                    try
+                    {
+                        if (player != null && !player.Equals("null") && gameID != null && !gameID.Equals("null"))
+                        {
+                            res = "bye";
+                            var record = gameRecords.Find(record => record.gameID.ToString().Equals(gameID));
+                            if (record.player1.Equals(player))
+                            {
+                                HandleOffline(record.epPlayer1);
+                            }
+                            else if (record.player2.Equals(player))
+                            {
+                                HandleOffline(record.epPlayer2);
+                            }
+                        }
+                        else
+                        {
+                            res = "Invalid Request";
+                        }
+                    }
+                    catch { res = "Invalid Request"; }
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                    await handler.SendAsync(echoBytes, SocketFlags.None);
-                    current_conn--;
-                    Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
+                    try
+                    {
+                        await handler.SendAsync(echoBytes, SocketFlags.None);
+                    }
+                    catch
+                    {
+                        Console.WriteLine("Connection lost");
+                    }
+
                 }
                 // /initialstatus
                 else if (reqString[startingIndex].Trim().Equals("/initialstatus"))
