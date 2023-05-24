@@ -483,7 +483,13 @@ namespace AsyncServer
                         item.epPlayer2 = handler;
                     }
                 }
-                res = string.Format("You have been paired with {0}, good luck!", waitingQueue[0]);
+                Response2Player resObj = new Response2Player
+                {
+                    msg = string.Format("You have been paired with {0}, good luck!", waitingQueue[0]),
+                    username = player,
+                    label = "2"
+                };
+                res = JsonSerializer.Serialize(resObj);
                 waitingQueue.Remove(player);
                 waitingQueue.Remove(waitingQueue[0]);
             }
@@ -496,14 +502,26 @@ namespace AsyncServer
 
                 while (gameRecords[currGID].status.Equals("wait"))
                 {
-                    res = "You have been added to the waiting queue, searching for another player...";
+                    Response2Player resObj = new Response2Player
+                    {
+                        msg = "You have been added to the waiting queue, searching for another player...",
+                        username = player,
+                        label = "1"
+                    };
+                    res = JsonSerializer.Serialize(resObj);
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
 
                     handler.Send(echoBytes, SocketFlags.None);
                     Thread.Sleep(500);
                 }
-                res = string.Format("You have been paired with {0}, good luck!", gameRecords[currGID].player2);
+                Response2Player resObject = new Response2Player
+                {
+                    msg = string.Format("You have been paired with {0}, good luck!", gameRecords[currGID].player2),
+                    username = player,
+                    label = "1"
+                };
+                res = JsonSerializer.Serialize(resObject);
             }
             return res;
         }

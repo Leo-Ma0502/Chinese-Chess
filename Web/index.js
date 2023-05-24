@@ -57,10 +57,13 @@ const getCoordinates = (cellList) => {
 // all coordinates available for chess
 const availableLocations = getCoordinates(cellList)
 
+// firstly connect to server
+fetch(baseUrl)
+
 var username;
 var registerStatus = document.getElementById("registerStatus");
 var join = document.createElement("button");
-join.innerText = "Join Game";
+join.innerText = "Register";
 join.addEventListener("click", () => {
     fetch(`${baseUrl}/register`, { method: 'POST' }).then(
         (res) => {
@@ -72,12 +75,27 @@ join.addEventListener("click", () => {
                 registerStatus.appendChild(welcome);
                 registerStatus.removeChild(join)
 
-                if (username == "Chu") {
-                    document.getElementById("title").style.transform = "rotate(180deg)";
-                    document.getElementById("outBorder").style.transform = "rotate(180deg)";
-                    document.getElementById("chuhe").style.transform = "rotate(180deg)";
-                    document.getElementById("hanjie").style.transform = "rotate(180deg)";
-                }
+                // if (username == "Chu") {
+                //     document.getElementById("title").style.transform = "rotate(180deg)";
+                //     document.getElementById("outBorder").style.transform = "rotate(180deg)";
+                //     document.getElementById("chuhe").style.transform = "rotate(180deg)";
+                //     document.getElementById("hanjie").style.transform = "rotate(180deg)";
+                // }
+                var pair = document.createElement("button")
+                pair.innerText = "Join Game"
+                pair.addEventListener("click", () => {
+                    fetch(`${baseUrl}/pair?player=${username}`, { method: 'POST' })
+                        .then((resp) => {
+                            resp.text().then((resp => {
+                                var msg = document.createElement("span")
+                                const resObj = JSON.parse(resp)
+                                console.log(resObj)
+                                msg.innerText = resObj.msg
+                                registerStatus.appendChild(msg)
+                            }))
+
+                        })
+                })
 
                 var logout = document.createElement("button")
                 logout.innerText = "Leave Game";
@@ -89,6 +107,9 @@ join.addEventListener("click", () => {
                     alert("You have left game")
                     location.reload()
                 })
+                registerStatus.appendChild(document.createElement("br"))
+                registerStatus.appendChild(pair)
+                registerStatus.appendChild(document.createElement("br"))
                 registerStatus.appendChild(logout)
 
                 // get all chesses
