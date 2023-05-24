@@ -191,14 +191,13 @@ namespace AsyncServer
                         {
                             current_conn--;
                             Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
-                            HandleOffline(handler);
+                            // HandleOffline(handler);
                             break;
                         }
                         else
                         {
                             RespondClient(response, handler, current_conn);
                         }
-
                     }
                 }).Start();
             }
@@ -381,7 +380,10 @@ namespace AsyncServer
                     res = "You have been added to the waiting queue, searching for another player...";
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                    handler.Send(echoBytes, SocketFlags.None);
+                    if (CheckConnection(handler))
+                    {
+                        handler.Send(echoBytes, SocketFlags.None);
+                    }
                     Thread.Sleep(500);
                 }
 
@@ -402,28 +404,42 @@ namespace AsyncServer
         private void HandleOffline(Socket handler)
         {
             var relatedRecord = gameRecords.Find(item => item.epPlayer1.RemoteEndPoint.ToString().Equals(handler.RemoteEndPoint.ToString()) || item.epPlayer2.RemoteEndPoint.ToString().Equals(handler.RemoteEndPoint.ToString()));
-            // change related game record
-            new Thread(() =>
+            if (relatedRecord != null)
             {
-                relatedRecord.status = "terminated";
-            }).Start();
-            // listen on change of game record
-            new Thread(() =>
-            {
-                foreach (var item in gameRecords)
+                // change related game record
+                new Thread(() =>
                 {
-                    if (item.status.Equals("terminated"))
+                    relatedRecord.status = "terminated";
+                }).Start();
+                // listen on change of game record
+                new Thread(() =>
+                {
+                    foreach (var item in gameRecords)
                     {
-                        // Console.WriteLine("terminated ");
-                        var res = "This game has been terminated because the other player went offline";
-                        string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                        var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                        item.epPlayer1?.Send(echoBytes, SocketFlags.None);
-                        item.epPlayer2?.Send(echoBytes, SocketFlags.None);
+                        if (item.status.Equals("terminated"))
+                        {
+                            // Console.WriteLine("terminated ");
+                            var res = "This game has been terminated because the other player went offline";
+                            string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                            var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                            item.epPlayer1?.Send(echoBytes, SocketFlags.None);
+                            item.epPlayer2?.Send(echoBytes, SocketFlags.None);
+                        }
                     }
-                }
 
-            }).Start();
+                }).Start();
+            }
+        }
+
+        private Boolean CheckConnection(Socket handler)
+        {
+            var buffer = new byte[1_024];
+            var received = handler.Receive(buffer, SocketFlags.None);
+            if (received == 0)
+            {
+                return false;
+            }
+            return true;
         }
     }
 }
