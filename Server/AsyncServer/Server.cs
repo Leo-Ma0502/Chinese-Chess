@@ -327,6 +327,45 @@ namespace AsyncServer
                     }
 
                 }
+                // /mymove
+                else if (reqString[startingIndex].Trim().Equals("/mymove"))
+                {
+                    string res;
+                    string[] temp = new string[90];
+                    string player = getParams(reqString, "player").Trim();
+                    string gameID = getParams(reqString, "gameID").Trim();
+                    string orow = getParams(reqString, "orow").Trim();
+                    string ocol = getParams(reqString, "ocol").Trim();
+                    string nrow = getParams(reqString, "nrow").Trim();
+                    string ncol = getParams(reqString, "ncol").Trim();
+                    try
+                    {
+                        if (player != null && !player.Equals("null") && gameID != null && !gameID.Equals("null") && orow != null && !orow.Equals("null") && ocol != null && !ocol.Equals("null") && nrow != null && !nrow.Equals("null") && ncol != null && !ncol.Equals("null"))
+                        {
+                            var record = gameRecords.Find(record => record.gameID.ToString().Equals(gameID));
+                            if (record.player1.Equals(player))
+                            {
+                                record.lastMovePlayer1 = new Move { nrow = int.Parse(nrow), ncol = int.Parse(ncol), orow = int.Parse(orow), ocol = int.Parse(ocol) };
+                            }
+                            else if (record.player2.Equals(player))
+                            {
+                                record.lastMovePlayer2 = new Move { nrow = int.Parse(nrow), ncol = int.Parse(ncol), orow = int.Parse(orow), ocol = int.Parse(ocol) };
+                            }
+                            res = "your move has been submitted";
+                        }
+                        else
+                        {
+                            res = "invalid request";
+                        }
+                    }
+                    catch
+                    {
+                        res = "invalid request";
+                    }
+                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                    await handler.SendAsync(echoBytes, SocketFlags.None);
+                }
                 // /initialstatus
                 else if (reqString[startingIndex].Trim().Equals("/initialstatus"))
                 {
@@ -350,6 +389,40 @@ namespace AsyncServer
                                 }
                             }
                             res = string.Join(",", temp);
+                        }
+                        else
+                        {
+                            res = "invalid request";
+                        }
+                    }
+                    catch
+                    {
+                        res = "invalid request";
+                    }
+                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                    await handler.SendAsync(echoBytes, SocketFlags.None);
+                }
+                // /theirmove
+                else if (reqString[startingIndex].Trim().Equals("/theirmove"))
+                {
+                    string res;
+                    string[] temp = new string[90];
+                    string player = getParams(reqString, "player").Trim();
+                    string gameID = getParams(reqString, "gameID").Trim();
+                    try
+                    {
+                        if (player != null && !player.Equals("null") && gameID != null && !gameID.Equals("null"))
+                        {
+                            var record = gameRecords.Find(record => record.gameID.ToString().Equals(gameID));
+                            if (record.player1.Equals(player))
+                            {
+                                res = JsonSerializer.Serialize(record.lastMovePlayer2);
+                            }
+                            else
+                            {
+                                res = JsonSerializer.Serialize(record.lastMovePlayer1);
+                            }
                         }
                         else
                         {
@@ -417,7 +490,7 @@ namespace AsyncServer
             else
             {
                 // no other players waiting
-                GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler, null, getStatus());
+                GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler, null, getStatus(), null, null);
                 gameRecords.Add(waiting);
                 int currGID = gameRecords[gameRecords.IndexOf(waiting)].gameID;
 
@@ -429,13 +502,6 @@ namespace AsyncServer
 
                     handler.Send(echoBytes, SocketFlags.None);
                     Thread.Sleep(500);
-
-                    // if (CheckConnection(handler) == false)
-                    // {
-                    //     gameRecords.Remove(gameRecords[currGID]);
-                    //     waitingQueue.Remove(player);
-                    //     break;
-                    // }
                 }
                 res = string.Format("You have been paired with {0}, good luck!", gameRecords[currGID].player2);
             }
