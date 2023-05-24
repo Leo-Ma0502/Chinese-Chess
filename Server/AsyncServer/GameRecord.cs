@@ -8,9 +8,9 @@ namespace AsyncServer
         public string status { get; set; }
         public string player1 { get; set; }
         public string player2 { get; set; }
-        public EndPoint? epPlayer1 { get; set; }
-        public EndPoint? epPlayer2 { get; set; }
-        public GameRecord(int gameID, string status, string player1, string player2, EndPoint? epPlayer1, EndPoint? epPlayer2)
+        public Socket? epPlayer1 { get; set; }
+        public Socket? epPlayer2 { get; set; }
+        public GameRecord(int gameID, string status, string player1, string player2, Socket? epPlayer1, Socket? epPlayer2)
         {
             this.gameID = gameID;
             this.status = status;

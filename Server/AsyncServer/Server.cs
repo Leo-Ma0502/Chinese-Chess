@@ -191,6 +191,7 @@ namespace AsyncServer
                         {
                             current_conn--;
                             Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
+                            HandleOffline(handler);
                             break;
                         }
                         else
@@ -361,7 +362,7 @@ namespace AsyncServer
                     {
                         item.player2 = player;
                         item.status = "progress";
-                        item.epPlayer2 = handler.RemoteEndPoint;
+                        item.epPlayer2 = handler;
                     }
                 }
                 res = string.Format("You have been paired with {0}, good luck!", waitingQueue[0]);
@@ -371,7 +372,7 @@ namespace AsyncServer
             else
             {
                 // no other players waiting
-                GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler.RemoteEndPoint, null);
+                GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler, null);
                 gameRecords.Add(waiting);
                 int currGID = gameRecords[gameRecords.IndexOf(waiting)].gameID;
 
@@ -394,9 +395,35 @@ namespace AsyncServer
             string output = "";
             foreach (var item in list)
             {
-                output += string.Format("\nID:{0}, status:{1}, player1:{2}, player2:{3}, epP1:{4}, epP2:{5}", item.gameID, item.status, item.player1, item.player2, item.epPlayer1?.ToString(), item.epPlayer2?.ToString());
+                output += string.Format("\nID:{0}, status:{1}, player1:{2}, player2:{3}, epP1:{4}, epP2:{5}", item.gameID, item.status, item.player1, item.player2, item.epPlayer1?.RemoteEndPoint?.ToString(), item.epPlayer2?.RemoteEndPoint?.ToString());
             }
             Console.WriteLine("Game Records: {0}", output);
+        }
+        private void HandleOffline(Socket handler)
+        {
+            var relatedRecord = gameRecords.Find(item => item.epPlayer1.RemoteEndPoint.ToString().Equals(handler.RemoteEndPoint.ToString()) || item.epPlayer2.RemoteEndPoint.ToString().Equals(handler.RemoteEndPoint.ToString()));
+            // change related game record
+            new Thread(() =>
+            {
+                relatedRecord.status = "terminated";
+            }).Start();
+            // listen on change of game record
+            new Thread(() =>
+            {
+                foreach (var item in gameRecords)
+                {
+                    if (item.status.Equals("terminated"))
+                    {
+                        // Console.WriteLine("terminated ");
+                        var res = "This game has been terminated because the other player went offline";
+                        string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                        var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                        item.epPlayer1?.Send(echoBytes, SocketFlags.None);
+                        item.epPlayer2?.Send(echoBytes, SocketFlags.None);
+                    }
+                }
+
+            }).Start();
         }
     }
 }
