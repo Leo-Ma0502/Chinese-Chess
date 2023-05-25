@@ -152,6 +152,7 @@ namespace AsyncServer
             }
             return temp;
         }
+
         //the main method to receive and send data
         //source: https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/sockets/socket-services#create-a-socket-server
         public async Task Serve()
@@ -187,7 +188,8 @@ namespace AsyncServer
                             if (received == 0)
                             {
                                 current_conn--;
-                                Console.WriteLine("{0} went off line, current connection: {1}", handler.RemoteEndPoint, current_conn);
+                                string vanishedEndPoint = handler.RemoteEndPoint.ToString();
+                                Console.WriteLine("{0} went off line, current connection: {1}", vanishedEndPoint, current_conn);
                                 HandleOffline(handler);
                                 break;
                             }
@@ -196,7 +198,11 @@ namespace AsyncServer
                                 RespondClient(response, handler, current_conn);
                             }
                         }
-                        catch { Console.WriteLine("connection lost"); };
+                        catch
+                        {
+                            Console.WriteLine("connection lost");
+                            break;
+                        };
                     }
                 }).Start();
             }
@@ -552,47 +558,116 @@ namespace AsyncServer
         }
         private void HandleOffline(Socket handler)
         {
-            var relatedRecord = gameRecords.Find(item => (item.epPlayer1.RemoteEndPoint.ToString().Equals(handler.RemoteEndPoint.ToString()) || item.epPlayer2.RemoteEndPoint.ToString().Equals(handler.RemoteEndPoint.ToString())) && !item.status.Equals("terminated"));
-            if (relatedRecord != null)
+            try
             {
-                // change related game record
-                new Thread(() =>
+                if (gameRecords.Find(item => item.epPlayer1 == null && !item.status.Equals("terminated")) != null)
                 {
-                    relatedRecord.status = "terminated";
-                }).Start();
-                // listen on change of game record
-                new Thread(() =>
-                {
-                    foreach (var item in gameRecords)
+                    try
                     {
-                        if (item.status.Equals("terminated"))
+                        gameRecords.Find(item => item.epPlayer1 == null && !item.status.Equals("terminated")).status = "terminated";
+                        // listen on change of game record
+                        new Thread(() =>
                         {
-                            // Console.WriteLine("terminated ");
-                            var res = "This game has been terminated because the other player went offline";
-                            string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                            var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
-                            if (waitingQueue.Contains(item.player1))
+                            foreach (var item in gameRecords)
                             {
-                                waitingQueue.Remove(item.player1);
-                            }
-                            if (waitingQueue.Contains(item.player2))
-                            {
-                                waitingQueue.Remove(item.player2);
-                            }
-                            try
-                            {
-                                item.epPlayer1?.Send(echoBytes, SocketFlags.None);
-                                item.epPlayer2?.Send(echoBytes, SocketFlags.None);
-                            }
-                            catch
-                            {
-                                Console.WriteLine("Game Closed");
+                                if (item.status.Equals("terminated"))
+                                {
+                                    if (waitingQueue.Contains(item.player1))
+                                    {
+                                        waitingQueue.Remove(item.player1);
+                                    }
+                                    if (waitingQueue.Contains(item.player2))
+                                    {
+                                        waitingQueue.Remove(item.player2);
+                                    }
+                                }
                             }
 
-                        }
+                        }).Start();
                     }
+                    catch
+                    {
+                        Console.WriteLine("changing status failed");
+                    }
+                }
+                else if (gameRecords.Find(item => item.epPlayer2 == null && !item.status.Equals("terminated")) != null)
+                {
+                    try
+                    {
+                        gameRecords.Find(item => item.epPlayer2 == null && !item.status.Equals("terminated")).status = "terminated";
+                        // listen on change of game record
+                        new Thread(() =>
+                        {
+                            foreach (var item in gameRecords)
+                            {
+                                if (item.status.Equals("terminated"))
+                                {
+                                    if (waitingQueue.Contains(item.player1))
+                                    {
+                                        waitingQueue.Remove(item.player1);
+                                    }
+                                    if (waitingQueue.Contains(item.player2))
+                                    {
+                                        waitingQueue.Remove(item.player2);
+                                    }
+                                }
+                            }
 
-                }).Start();
+                        }).Start();
+                    }
+                    catch
+                    {
+                        Console.WriteLine("changing status failed");
+                    }
+                }
+                else
+                {
+                    var relatedRecord = gameRecords.Find(item => (item.epPlayer1.RemoteEndPoint.ToString().Equals(handler.RemoteEndPoint.ToString()) || item.epPlayer2.RemoteEndPoint.ToString().Equals(handler.RemoteEndPoint.ToString())) && !item.status.Equals("terminated"));
+                    if (relatedRecord != null)
+                    {
+                        // change related game record
+                        new Thread(() =>
+                        {
+                            relatedRecord.status = "terminated";
+                        }).Start();
+                        // listen on change of game record
+                        new Thread(() =>
+                        {
+                            foreach (var item in gameRecords)
+                            {
+                                if (item.status.Equals("terminated"))
+                                {
+                                    // var res = "This game has been terminated because the other player went offline";
+                                    // string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                                    // var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                                    if (waitingQueue.Contains(item.player1))
+                                    {
+                                        waitingQueue.Remove(item.player1);
+                                    }
+                                    if (waitingQueue.Contains(item.player2))
+                                    {
+                                        waitingQueue.Remove(item.player2);
+                                    }
+                                    // try
+                                    // {
+                                    //     item.epPlayer1?.Send(echoBytes, SocketFlags.None);
+                                    //     item.epPlayer2?.Send(echoBytes, SocketFlags.None);
+                                    // }
+                                    // catch
+                                    // {
+                                    //     Console.WriteLine("Game Closed");
+                                    // }
+
+                                }
+                            }
+
+                        }).Start();
+                    }
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Something went wrong...");
             }
         }
 
