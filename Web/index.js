@@ -164,38 +164,112 @@ const pairme = (username, msg_wait) => {
                                 chess.style.position = "absolute"
                                 chess.style.left = location[x][y].x + 47.5;
                                 chess.style.top = location[x][y].y + 65;
-                                chess.addEventListener("click", () => {
-                                    try {
-                                        var others = document.getElementsByClassName("chessPieces expected");
-                                        if (others.length != 0) {
-                                            Array.from(others).map((item) => board.removeChild(item))
-                                        }
-                                        curr_loc = JSON.parse(chess.id)
-                                        var available_loc;
-                                        available_loc = getAvailableLoc(division, curr_loc)
-                                        available_loc.map((item) => {
-                                            var availableLocation = document.createElement('div');
-                                            availableLocation.className = "chessPieces expected";
-                                            availableLocation.style.position = "absolute"
-                                            availableLocation.style.left = location[item.x][item.y].x + 47.5;
-                                            availableLocation.style.top = location[item.x][item.y].y + 65;
-                                            availableLocation.addEventListener("click", () => {
-                                                moveChess(faction, division, location, x, y, item.x, item.y, board)
-                                            })
-                                            board.appendChild(availableLocation);
-                                            chess.addEventListener("dblclick", () => {
-                                                try {
-                                                    board.removeChild(availableLocation)
+                                if (resObj.label == "1") {
+                                    // red side
+                                    if (chess.className.includes("red")) {
+                                        chess.addEventListener("click", () => {
+                                            try {
+                                                var others = document.getElementsByClassName("chessPieces expected");
+                                                if (others.length != 0) {
+                                                    Array.from(others).map((item) => board.removeChild(item))
                                                 }
-                                                catch (e) {
-                                                    console.log(e)
-                                                }
-                                            })
+                                                curr_loc = JSON.parse(chess.id)
+                                                var available_loc;
+                                                available_loc = getAvailableLoc(division, curr_loc)
+                                                available_loc.map((item) => {
+                                                    var availableLocation = document.createElement('div');
+                                                    availableLocation.className = "chessPieces expected";
+                                                    availableLocation.style.position = "absolute"
+                                                    availableLocation.style.left = location[item.x][item.y].x + 47.5;
+                                                    availableLocation.style.top = location[item.x][item.y].y + 65;
+                                                    availableLocation.addEventListener("click", () => {
+                                                        moveChess(faction, division, location, x, y, item.x, item.y, board)
+                                                    })
+                                                    board.appendChild(availableLocation);
+                                                    chess.addEventListener("dblclick", () => {
+                                                        try {
+                                                            board.removeChild(availableLocation)
+                                                        }
+                                                        catch (e) {
+                                                            console.log(e)
+                                                        }
+                                                    })
+                                                })
+                                            } catch (e) {
+                                                console.log(e)
+                                            }
                                         })
-                                    } catch (e) {
-                                        console.log(e)
                                     }
-                                })
+                                }
+                                else if (resObj.label == "2") {
+                                    // red side
+                                    if (chess.className.includes("black")) {
+                                        chess.addEventListener("click", () => {
+                                            try {
+                                                var others = document.getElementsByClassName("chessPieces expected");
+                                                if (others.length != 0) {
+                                                    Array.from(others).map((item) => board.removeChild(item))
+                                                }
+                                                curr_loc = JSON.parse(chess.id)
+                                                var available_loc;
+                                                available_loc = getAvailableLoc(division, curr_loc)
+                                                available_loc.map((item) => {
+                                                    var availableLocation = document.createElement('div');
+                                                    availableLocation.className = "chessPieces expected";
+                                                    availableLocation.style.position = "absolute"
+                                                    availableLocation.style.left = location[item.x][item.y].x + 47.5;
+                                                    availableLocation.style.top = location[item.x][item.y].y + 65;
+                                                    availableLocation.addEventListener("click", () => {
+                                                        moveChess(faction, division, location, x, y, item.x, item.y, board)
+                                                    })
+                                                    board.appendChild(availableLocation);
+                                                    chess.addEventListener("dblclick", () => {
+                                                        try {
+                                                            board.removeChild(availableLocation)
+                                                        }
+                                                        catch (e) {
+                                                            console.log(e)
+                                                        }
+                                                    })
+                                                })
+                                            } catch (e) {
+                                                console.log(e)
+                                            }
+                                        })
+                                    }
+                                }
+                                // chess.addEventListener("click", () => {
+                                //     try {
+                                //         var others = document.getElementsByClassName("chessPieces expected");
+                                //         if (others.length != 0) {
+                                //             Array.from(others).map((item) => board.removeChild(item))
+                                //         }
+                                //         curr_loc = JSON.parse(chess.id)
+                                //         var available_loc;
+                                //         available_loc = getAvailableLoc(division, curr_loc)
+                                //         available_loc.map((item) => {
+                                //             var availableLocation = document.createElement('div');
+                                //             availableLocation.className = "chessPieces expected";
+                                //             availableLocation.style.position = "absolute"
+                                //             availableLocation.style.left = location[item.x][item.y].x + 47.5;
+                                //             availableLocation.style.top = location[item.x][item.y].y + 65;
+                                //             availableLocation.addEventListener("click", () => {
+                                //                 moveChess(faction, division, location, x, y, item.x, item.y, board)
+                                //             })
+                                //             board.appendChild(availableLocation);
+                                //             chess.addEventListener("dblclick", () => {
+                                //                 try {
+                                //                     board.removeChild(availableLocation)
+                                //                 }
+                                //                 catch (e) {
+                                //                     console.log(e)
+                                //                 }
+                                //             })
+                                //         })
+                                //     } catch (e) {
+                                //         console.log(e)
+                                //     }
+                                // })
                                 board.appendChild(chess);
                             }
                         }

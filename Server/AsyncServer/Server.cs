@@ -246,6 +246,22 @@ namespace AsyncServer
                     Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
 
                 }
+                //   /
+                else if (reqString[startingIndex].Trim().Equals("/"))
+                {
+                    string res;
+                    try
+                    {
+                        res = "Hello";
+                    }
+                    catch
+                    {
+                        res = "invalid request";
+                    }
+                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                    await handler.SendAsync(echoBytes, SocketFlags.None);
+                }
                 // /pair
                 else if (reqString[startingIndex].Trim().Equals("/pair"))
                 {
