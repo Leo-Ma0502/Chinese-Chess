@@ -244,17 +244,23 @@ namespace AsyncServer
                 else if (reqString[startingIndex].Trim().Equals("/pair"))
                 {
                     string res;
-                    string player = getParams(reqString, "player");
+                    string player = getParams(reqString, "player").Trim();
                     try
                     {
                         if (player != null && !player.Equals("null"))
                         {
-                            GameRecord? existing = gameRecords.Find(re => re.player1.Trim().Equals(player.Trim()) || re.player2.Trim().Equals(player.Trim()));
+                            GameRecord? existing = gameRecords.Find(re => re.player1.Trim().Equals(player) || re.player2.Trim().Equals(player));
                             if (existing != null)
                             {
                                 if (existing.status.Trim().Equals("progress"))
                                 {
-                                    res = "You cannot request for pairing while in a progressing game";
+                                    Response2Player resObj = new Response2Player
+                                    {
+                                        msg = string.Format("You have been paired with {0}, good luck!", existing.player1.Equals(player) ? existing.player2 : existing.player1),
+                                        username = player,
+                                        label = "1"
+                                    };
+                                    res = JsonSerializer.Serialize(resObj);
                                 }
                                 else
                                 {
@@ -495,12 +501,19 @@ namespace AsyncServer
             }
             else
             {
+                int currGID;
                 // no other players waiting
-                GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler, null, getStatus(), null, null);
-                gameRecords.Add(waiting);
-                int currGID = gameRecords[gameRecords.IndexOf(waiting)].gameID;
-
-                while (gameRecords[currGID].status.Equals("wait"))
+                if (gameRecords.Find(record => record.player1.Equals(player) && record.status.Equals("wait")) == null)
+                {
+                    GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler, null, getStatus(), null, null);
+                    gameRecords.Add(waiting);
+                    currGID = waiting.gameID;
+                }
+                else
+                {
+                    currGID = gameRecords.Find(record => record.player1.Equals(player) && record.status.Equals("wait")).gameID;
+                }
+                if (gameRecords[currGID].status.Equals("wait"))
                 {
                     Response2Player resObj = new Response2Player
                     {
@@ -515,13 +528,16 @@ namespace AsyncServer
                     handler.Send(echoBytes, SocketFlags.None);
                     Thread.Sleep(500);
                 }
-                Response2Player resObject = new Response2Player
+                else
                 {
-                    msg = string.Format("You have been paired with {0}, good luck!", gameRecords[currGID].player2),
-                    username = player,
-                    label = "1"
-                };
-                res = JsonSerializer.Serialize(resObject);
+                    Response2Player resObject = new Response2Player
+                    {
+                        msg = string.Format("You have been paired with {0}, good luck!", gameRecords[currGID].player2),
+                        username = player,
+                        label = "1"
+                    };
+                    res = JsonSerializer.Serialize(resObject);
+                }
             }
             return res;
         }

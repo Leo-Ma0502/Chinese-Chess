@@ -91,9 +91,16 @@ join.addEventListener("click", () => {
                                 const resObj = JSON.parse(resp)
                                 console.log(resObj)
                                 msg.innerText = resObj.msg
+                                while (!resObj.msg.includes("good luck")) {
+                                    fetch(`${baseUrl}/pair?player=${username}`, { method: 'POST' })
+                                        .then((resp) => {
+                                            resp.text().then((resp) => {
+                                                console.log(resp)
+                                            })
+                                        })
+                                }
                                 registerStatus.appendChild(msg)
                             }))
-
                         })
                 })
 
