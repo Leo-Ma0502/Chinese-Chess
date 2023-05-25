@@ -427,13 +427,20 @@ namespace AsyncServer
                         if (player != null && !player.Equals("null") && gameID != null && !gameID.Equals("null"))
                         {
                             var record = gameRecords.Find(record => record.gameID.ToString().Equals(gameID));
-                            if (record.player1.Equals(player))
+                            if (record.status.Equals("progress"))
                             {
-                                res = JsonSerializer.Serialize(record.lastMovePlayer2);
+                                if (record.player1.Equals(player))
+                                {
+                                    res = JsonSerializer.Serialize(record.lastMovePlayer2);
+                                }
+                                else
+                                {
+                                    res = JsonSerializer.Serialize(record.lastMovePlayer1);
+                                }
                             }
                             else
                             {
-                                res = JsonSerializer.Serialize(record.lastMovePlayer1);
+                                res = "This game has been terminated because the other player went offline";
                             }
                         }
                         else
@@ -575,9 +582,6 @@ namespace AsyncServer
                         {
                             if (item.status.Equals("terminated"))
                             {
-                                // var res = "This game has been terminated because the other player went offline";
-                                // string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                                // var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                                 if (waitingQueue.Contains(item.player1))
                                 {
                                     waitingQueue.Remove(item.player1);
@@ -586,15 +590,6 @@ namespace AsyncServer
                                 {
                                     waitingQueue.Remove(item.player2);
                                 }
-                                // try
-                                // {
-                                //     item.epPlayer1?.Send(echoBytes, SocketFlags.None);
-                                //     item.epPlayer2?.Send(echoBytes, SocketFlags.None);
-                                // }
-                                // catch
-                                // {
-                                //     Console.WriteLine("Game Closed");
-                                // }
                             }
                         }
 
