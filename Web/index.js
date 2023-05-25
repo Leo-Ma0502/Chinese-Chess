@@ -62,6 +62,37 @@ fetch(baseUrl)
 
 var username;
 let message_begin = "initial";
+let myturnyet = { message_turn: "not your turn yet" }
+
+var msg_not_turn = document.createElement("span")
+msg_not_turn.innerText = "not your turn yet"
+
+var msg_turn = document.createElement("span")
+msg_turn.innerText = "your turn now"
+
+var targetProxy = new Proxy(myturnyet, {
+    set: (target, key, value) => {
+        console.log(`${key} set to ${value}`);
+        target[key] = value;
+        if (!targetProxy.message_turn.includes("now")) {
+            try {
+                registerStatus.removeChild(msg_turn)
+            } catch {
+                console.log("")
+            }
+            registerStatus.appendChild(msg_not_turn)
+        }
+        else {
+            try {
+                registerStatus.removeChild(msg_not_turn)
+            } catch {
+                console.log("")
+            }
+            registerStatus.appendChild(msg_turn)
+        }
+        return true;
+    }
+});
 var registerStatus = document.getElementById("registerStatus");
 var welcome = document.createElement("span")
 var join = document.createElement("button");
@@ -250,14 +281,19 @@ const pairme = (username, msg_wait) => {
                         }
 
                         const moveChess = (faction, division, location, curr_x, curr_y, tar_x, tar_y, board) => {
-                            deleteChess(res, curr_x, curr_y);
-                            renderChess(res, faction, division, location, tar_x, tar_y);
-                            var availableLocation = Array.from(document.getElementsByClassName("expected"));
-                            availableLocation.map((item) => {
-                                board.removeChild(item);
-                            })
-                            fetch(`${baseUrl}/mymove?player=${resObj.username}&gameID=${resObj.gameID}&orow=${curr_x}&ocol=${curr_y}&nrow=${tar_x}&ncol=${tar_y}&fac=${faction}&div=${characterEncode(division)}`, { method: 'POST' })
-                            // getTheirMove(resObj.username, resObj.gameID)
+                            if (myturnyet.message_turn.includes("now")) {
+                                deleteChess(res, curr_x, curr_y);
+                                renderChess(res, faction, division, location, tar_x, tar_y);
+                                var availableLocation = Array.from(document.getElementsByClassName("expected"));
+                                availableLocation.map((item) => {
+                                    board.removeChild(item);
+                                })
+                                fetch(`${baseUrl}/mymove?player=${resObj.username}&gameID=${resObj.gameID}&orow=${curr_x}&ocol=${curr_y}&nrow=${tar_x}&ncol=${tar_y}&fac=${faction}&div=${characterEncode(division)}`, { method: 'POST' })
+                                try { myturn(username, myturnyet, resObj.gameID) } catch { console.log("get turn failed") }
+                            }
+                            else {
+                                alert(myturnyet.message_turn)
+                            }
                         }
 
                         res.map((item) => {
@@ -504,6 +540,47 @@ const pairme = (username, msg_wait) => {
                                     })
                                 }).catch(() => console.log("cannot issue this request"))
                         }
+                        // check if it is my turn
+                        const myturn = (username, myturnyet, gameID) => {
+                            fetch(`${baseUrl}/myturn?player=${username}&gameID=${gameID}`, { method: 'POST' })
+                                .then((resp) => {
+                                    resp.text().then((resp => {
+                                        if (!resp.includes("true")) {
+                                            targetProxy.message_turn = "not your turn yet"
+                                            // registerStatus.removeChild(msg_turn)
+                                            // var msg_not_turn = document.createElement("span")
+                                            // msg_not_turn.innerText = myturnyet.message_turn
+                                            // registerStatus.appendChild(document.createElement("br"))
+                                            // registerStatus.appendChild(msg_not_turn)
+                                            setTimeout(() => {
+                                                myturn(username, myturnyet, gameID)
+                                            }, 3000)
+                                        } else {
+                                            targetProxy.message_turn = "it's your turn now"
+                                            // registerStatus.removeChild(msg_not_turn)
+                                            // var msg_turn = document.createElement("span")
+                                            // msg_turn.innerText = myturnyet.message_turn
+                                            // registerStatus.appendChild(document.createElement("br"))
+                                            // registerStatus.appendChild(msg_turn)
+                                        }
+                                    }))
+                                })
+                        }
+
+                        // registerStatus.removeChild(msg_not_turn)
+                        // var msg_turn = document.createElement("span")
+                        // msg_turn.innerText = "not your turn yet"
+                        // registerStatus.appendChild(document.createElement("br"))
+                        // registerStatus.appendChild(msg_turn)
+
+                        // var msg_not_turn = document.createElement("span")
+                        // msg_not_turn.innerText = "your turn now"
+                        // registerStatus.appendChild(document.createElement("br"))
+                        // registerStatus.appendChild(document.createElement("br"))
+                        // registerStatus.appendChild(msg_not_turn)
+
+
+                        try { myturn(username, myturnyet, resObj.gameID) } catch { console.log("get turn failed") }
 
                         var getMove = document.createElement("button")
                         getMove.innerText = "Get the other player's move"
@@ -526,6 +603,7 @@ const pairme = (username, msg_wait) => {
             }))
         })
 }
+
 
 const characterEncode = (origin) => {
     switch (origin) {

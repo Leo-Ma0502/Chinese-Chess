@@ -6,6 +6,7 @@ namespace AsyncServer
 {
     public class Server
     {
+        private readonly Object _lockForGameRecords = new();
         private readonly IPAddress ip;
         private readonly int port;
         private List<string> waitingQueue = new();
@@ -195,7 +196,11 @@ namespace AsyncServer
                             }
                             else
                             {
-                                RespondClient(response, handler, current_conn);
+                                lock (_lockForGameRecords)
+                                {
+                                    RespondClient(response, handler, current_conn);
+                                }
+                                // RespondClient(response, handler, current_conn);
                             }
                         }
                         catch
@@ -379,11 +384,13 @@ namespace AsyncServer
                             if (record.player1.Equals(player))
                             {
                                 record.lastMovePlayer1 = new Move { nrow = int.Parse(nrow), ncol = int.Parse(ncol), orow = int.Parse(orow), ocol = int.Parse(ocol), fac = fac, div = div };
+                                record.whoseTurn = "player2";
                                 Console.WriteLine("In game {0}, player {1} moved the chess from [row {2} col {3}] to [row {4} col {5}]", record.gameID, record.player1, orow, ocol, nrow, ncol);
                             }
                             else if (record.player2.Equals(player))
                             {
                                 record.lastMovePlayer2 = new Move { nrow = int.Parse(nrow), ncol = int.Parse(ncol), orow = int.Parse(orow), ocol = int.Parse(ocol), fac = fac, div = div };
+                                record.whoseTurn = "player1";
                                 Console.WriteLine("In game {0}, player {1} moved the chess from [row {2} col {3}] to [row {4} col {5}]", record.gameID, record.player2, orow, ocol, nrow, ncol);
                             }
                             res = "your move has been submitted";
@@ -479,6 +486,65 @@ namespace AsyncServer
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     await handler.SendAsync(echoBytes, SocketFlags.None);
                 }
+                // myturn
+                else if (reqString[startingIndex].Trim().Equals("/myturn"))
+                {
+                    string res;
+                    string[] temp = new string[90];
+                    string player = getParams(reqString, "player").Trim();
+                    string gameID = getParams(reqString, "gameID").Trim();
+                    try
+                    {
+                        if (player != null && !player.Equals("null") && gameID != null && !gameID.Equals("null"))
+                        {
+                            var record = gameRecords.Find(record => record.gameID.ToString().Equals(gameID));
+                            if (record.status.Equals("progress"))
+                            {
+                                if (record.player1.Equals(player))
+                                {
+                                    if (record.whoseTurn.Equals("player1"))
+                                    {
+                                        res = "true";
+                                    }
+                                    else
+                                    {
+                                        res = "false";
+                                    }
+                                }
+                                else if (record.player2.Equals(player))
+                                {
+                                    if (record.whoseTurn.Equals("player2"))
+                                    {
+                                        res = "true";
+                                    }
+                                    else
+                                    {
+                                        res = "false";
+                                    }
+                                }
+                                else
+                                {
+                                    res = "player not found";
+                                }
+                            }
+                            else
+                            {
+                                res = "This game has been terminated because the other player went offline";
+                            }
+                        }
+                        else
+                        {
+                            res = "invalid request";
+                        }
+                    }
+                    catch
+                    {
+                        res = "invalid request";
+                    }
+                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                    await handler.SendAsync(echoBytes, SocketFlags.None);
+                }
                 // 404
                 else
                 {
@@ -521,7 +587,7 @@ namespace AsyncServer
                 if (gameRecords.Find(record => record.player1.Equals(waitingQueue[0]) && record.status.Equals("wait")) == null)
                 {
                     // add the waiting player to record, labeling it waiting, although this situation is highly unlikely
-                    GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler.RemoteEndPoint.ToString(), "", getStatus(), null, null);
+                    GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler.RemoteEndPoint.ToString(), "", getStatus(), null, null, "player1");
                     gameRecords.Add(waiting);
                     currGID = waiting.gameID;
                 }
@@ -549,7 +615,7 @@ namespace AsyncServer
                 if (gameRecords.Find(record => record.player1.Equals(player) && record.status.Equals("wait")) == null) // the player has not been added to game record
                 {
                     // add the player to record, labeling it waiting
-                    GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler.RemoteEndPoint.ToString(), "", getStatus(), null, null);
+                    GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler.RemoteEndPoint.ToString(), "", getStatus(), null, null, "player1");
                     gameRecords.Add(waiting);
                     currGID = waiting.gameID;
                 }
