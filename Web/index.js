@@ -140,6 +140,8 @@ const pairme = (username, msg_wait) => {
                             })
 
                     chessLayout.then((res) => {
+                        // res: initial chess layout
+
                         // render a chess, 
                         // args -- 
                         // faction: black or red; 
@@ -238,38 +240,6 @@ const pairme = (username, msg_wait) => {
                                         })
                                     }
                                 }
-                                // chess.addEventListener("click", () => {
-                                //     try {
-                                //         var others = document.getElementsByClassName("chessPieces expected");
-                                //         if (others.length != 0) {
-                                //             Array.from(others).map((item) => board.removeChild(item))
-                                //         }
-                                //         curr_loc = JSON.parse(chess.id)
-                                //         var available_loc;
-                                //         available_loc = getAvailableLoc(division, curr_loc)
-                                //         available_loc.map((item) => {
-                                //             var availableLocation = document.createElement('div');
-                                //             availableLocation.className = "chessPieces expected";
-                                //             availableLocation.style.position = "absolute"
-                                //             availableLocation.style.left = location[item.x][item.y].x + 47.5;
-                                //             availableLocation.style.top = location[item.x][item.y].y + 65;
-                                //             availableLocation.addEventListener("click", () => {
-                                //                 moveChess(faction, division, location, x, y, item.x, item.y, board)
-                                //             })
-                                //             board.appendChild(availableLocation);
-                                //             chess.addEventListener("dblclick", () => {
-                                //                 try {
-                                //                     board.removeChild(availableLocation)
-                                //                 }
-                                //                 catch (e) {
-                                //                     console.log(e)
-                                //                 }
-                                //             })
-                                //         })
-                                //     } catch (e) {
-                                //         console.log(e)
-                                //     }
-                                // })
                                 board.appendChild(chess);
                             }
                         }
@@ -287,6 +257,7 @@ const pairme = (username, msg_wait) => {
                             availableLocation.map((item) => {
                                 board.removeChild(item);
                             })
+                            fetch(`${baseUrl}/mymove?player=${resObj.username}&gameID=${resObj.gameID}&orow=${curr_x}&ocol=${curr_y}&nrow=${tar_x}&ncol=${tar_y}`, { method: 'POST' })
                         }
                         res.map((item) => {
                             renderChess(res, item.faction, item.division, availableLocations, item.row, item.col)
