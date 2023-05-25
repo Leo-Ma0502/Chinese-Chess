@@ -311,7 +311,7 @@ namespace AsyncServer
                     {
                         res = "invalid request";
                     }
-                    PrintRecord(gameRecords);
+                    // PrintRecord(gameRecords);
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     try
@@ -608,6 +608,7 @@ namespace AsyncServer
                 res = JsonSerializer.Serialize(resObj);
                 waitingQueue.Remove(player);
                 waitingQueue.Remove(waitingQueue[0]);
+                Console.WriteLine("Game {0} started", gameRecords[currGID].gameID);
             }
             else // there is no other player in waiting queue
             {
@@ -659,6 +660,7 @@ namespace AsyncServer
                     new Thread(() =>
                     {
                         relatedRecord.status = "terminated";
+                        Console.WriteLine("Game {0} terminated", relatedRecord.gameID);
                     }).Start();
                     // listen on change of game record
                     new Thread(() =>
