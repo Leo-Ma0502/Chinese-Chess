@@ -200,7 +200,7 @@ namespace AsyncServer
                         }
                         catch
                         {
-                            Console.WriteLine("connection lost");
+                            Console.WriteLine("connection lost for funciton Serve()");
                             break;
                         };
                     }
@@ -272,10 +272,11 @@ namespace AsyncServer
                         if (player != null && !player.Equals("null"))
                         {
                             GameRecord? existing = gameRecords.Find(re => re.player1.Trim().Equals(player) || re.player2.Trim().Equals(player));
-                            if (existing != null)
+                            if (existing != null) // firstly, find if this player is in existing game record 
                             {
-                                if (existing.status.Trim().Equals("progress"))
+                                if (existing.status.Trim().Equals("progress")) // then, check if this game is progressing 
                                 {
+                                    // if the game is progressing, notify the player the game begins
                                     Response2Player resObj = new Response2Player
                                     {
                                         msg = string.Format("You have been paired with {0}, good luck!", existing.player1.Equals(player) ? existing.player2 : existing.player1),
@@ -287,10 +288,11 @@ namespace AsyncServer
                                 }
                                 else
                                 {
+                                    // if not, pass it on to pairup function
                                     res = PairUp(player, handler);
                                 }
                             }
-                            else
+                            else // if the player is not in existing record, pass it on to pair up function
                             {
                                 res = PairUp(player, handler);
                             }
@@ -313,7 +315,7 @@ namespace AsyncServer
                     }
                     catch
                     {
-                        Console.WriteLine("Connection lost");
+                        Console.WriteLine("Connection lost for pairing");
                     }
 
                 }
@@ -352,7 +354,7 @@ namespace AsyncServer
                     }
                     catch
                     {
-                        Console.WriteLine("Connection lost");
+                        Console.WriteLine("Connection lost for quit");
                     }
 
                 }
@@ -499,8 +501,10 @@ namespace AsyncServer
             name += new Random().Next(100, 1000);
             return name;
         }
+        // This function deals with two situations: the player is not in exisitng record and the player is in existing record but the game is not progressing
         private string PairUp(string player, Socket handler)
         {
+            // firstly, if the player is not in the waiting pool, add it in
             string res;
             if (!waitingQueue.Contains(player))
             {
@@ -511,24 +515,27 @@ namespace AsyncServer
             {
                 Console.WriteLine("{0} is still waiting in pool", player);
             }
-            if (waitingQueue.Count != 1)
+            if (waitingQueue.Count != 1) // there is another player waiting
             {
-                int? currGID = null;
-                // pair this player with another waiting player and delete both of them from waiting pool
-                foreach (var item in gameRecords)
+                int currGID;
+                if (gameRecords.Find(record => record.player1.Equals(waitingQueue[0]) && record.status.Equals("wait")) == null)
                 {
-                    if (item.player1 == waitingQueue[0] && item.status.Equals("wait"))
-                    {
-                        item.player2 = player;
-                        item.status = "progress";
-                        item.epPlayer2 = handler.RemoteEndPoint.ToString();
-                        currGID = item.gameID;
-                    }
+                    // add the waiting player to record, labeling it waiting, although this situation is highly unlikely
+                    GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler.RemoteEndPoint.ToString(), "", getStatus(), null, null);
+                    gameRecords.Add(waiting);
+                    currGID = waiting.gameID;
                 }
+                else // the waiting player is already in the record
+                {
+                    currGID = gameRecords.Find(record => record.player1.Equals(waitingQueue[0]) && record.status.Equals("wait")).gameID;
+                }
+                gameRecords[currGID].status = "progress";
+                gameRecords[currGID].player2 = player;
+                gameRecords[currGID].epPlayer2 = handler.RemoteEndPoint.ToString();
                 Response2Player resObj = new Response2Player
                 {
                     msg = string.Format("You have been paired with {0}, good luck!", waitingQueue[0]),
-                    gameID = currGID?.ToString(),
+                    gameID = currGID.ToString(),
                     username = player,
                     label = "2"
                 };
@@ -536,47 +543,33 @@ namespace AsyncServer
                 waitingQueue.Remove(player);
                 waitingQueue.Remove(waitingQueue[0]);
             }
-            else
+            else // there is no other player in waiting queue
             {
                 int currGID;
-                // no other players waiting
-                if (gameRecords.Find(record => record.player1.Equals(player) && record.status.Equals("wait")) == null)
+                if (gameRecords.Find(record => record.player1.Equals(player) && record.status.Equals("wait")) == null) // the player has not been added to game record
                 {
+                    // add the player to record, labeling it waiting
                     GameRecord waiting = new GameRecord(gameRecords.Count, "wait", player, "null", handler.RemoteEndPoint.ToString(), "", getStatus(), null, null);
                     gameRecords.Add(waiting);
                     currGID = waiting.gameID;
                 }
-                else
+                else // the player is already in the record
                 {
                     currGID = gameRecords.Find(record => record.player1.Equals(player) && record.status.Equals("wait")).gameID;
                 }
-                if (gameRecords[currGID].status.Equals("wait"))
+                Response2Player resObj = new Response2Player
                 {
-                    Response2Player resObj = new Response2Player
-                    {
-                        msg = "You have been added to the waiting queue, searching for another player...",
-                        gameID = gameRecords[currGID].gameID.ToString(),
-                        username = player,
-                        label = "1"
-                    };
-                    res = JsonSerializer.Serialize(resObj);
-                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
-                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                    msg = "You have been added to the waiting queue, searching for another player...",
+                    gameID = gameRecords[currGID].gameID.ToString(),
+                    username = player,
+                    label = "1"
+                };
+                res = JsonSerializer.Serialize(resObj);
+                string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
 
-                    handler.Send(echoBytes, SocketFlags.None);
-                    Thread.Sleep(500);
-                }
-                else
-                {
-                    Response2Player resObject = new Response2Player
-                    {
-                        msg = string.Format("You have been paired with {0}, good luck!", gameRecords[currGID].player2),
-                        username = player,
-                        label = "1",
-                        gameID = currGID.ToString()
-                    };
-                    res = JsonSerializer.Serialize(resObject);
-                }
+                handler.Send(echoBytes, SocketFlags.None);
+                Thread.Sleep(50);
             }
             return res;
         }
