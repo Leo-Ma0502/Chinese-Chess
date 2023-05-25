@@ -258,6 +258,7 @@ const pairme = (username, msg_wait) => {
                                 board.removeChild(item);
                             })
                             fetch(`${baseUrl}/mymove?player=${resObj.username}&gameID=${resObj.gameID}&orow=${curr_x}&ocol=${curr_y}&nrow=${tar_x}&ncol=${tar_y}`, { method: 'POST' })
+                            getTheirMove(resObj.username, resObj.gameID)
                         }
                         res.map((item) => {
                             renderChess(res, item.faction, item.division, availableLocations, item.row, item.col)
@@ -363,6 +364,26 @@ const pairme = (username, msg_wait) => {
                             else {
                                 return { fac: test.faction, div: test.division }
                             }
+                        }
+                        // get other's move
+                        const getTheirMove = (username, gameID) => {
+                            fetch(`${baseUrl}/theirmove?player=${username}&gameID=${gameID}`, { method: 'POST' })
+                                .then((resp) => {
+                                    resp.text().then((resp) => {
+                                        if (resp.includes("off line")) {
+                                            alert(resp)
+                                        }
+                                        else {
+                                            try {
+                                                const resObj = JSON.parse(resp)
+                                                console.log(resObj)
+                                            }
+                                            catch {
+                                                console.log("abnormal response: ", resp)
+                                            }
+                                        }
+                                    })
+                                })
                         }
                     }
                     ).catch(() => { console.log("invalid request") })
