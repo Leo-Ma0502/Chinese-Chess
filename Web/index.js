@@ -370,7 +370,7 @@ const pairme = (username, msg_wait) => {
                             fetch(`${baseUrl}/theirmove?player=${username}&gameID=${gameID}`, { method: 'POST' })
                                 .then((resp) => {
                                     resp.text().then((resp) => {
-                                        if (resp.includes("off line")) {
+                                        if (resp.includes("offline")) {
                                             alert(resp)
                                         }
                                         else {
