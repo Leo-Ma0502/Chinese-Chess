@@ -8,6 +8,9 @@ namespace AsyncServer
         public int ocol { get; set; }
         public int nrow { get; set; }
         public int ncol { get; set; }
+        public string fac { get; set; }
+        public string div { get; set; }
+
 
     }
 }

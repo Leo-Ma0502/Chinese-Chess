@@ -367,19 +367,21 @@ namespace AsyncServer
                     string ocol = getParams(reqString, "ocol").Trim();
                     string nrow = getParams(reqString, "nrow").Trim();
                     string ncol = getParams(reqString, "ncol").Trim();
+                    string fac = getParams(reqString, "fac").Trim();
+                    string div = getParams(reqString, "div").Trim();
                     try
                     {
-                        if (player != null && !player.Equals("null") && gameID != null && !gameID.Equals("null") && orow != null && !orow.Equals("null") && ocol != null && !ocol.Equals("null") && nrow != null && !nrow.Equals("null") && ncol != null && !ncol.Equals("null"))
+                        if (player != null && !player.Equals("null") && gameID != null && !gameID.Equals("null") && orow != null && !orow.Equals("null") && ocol != null && !ocol.Equals("null") && nrow != null && !nrow.Equals("null") && ncol != null && !ncol.Equals("null") && fac != null && !fac.Equals("null") && div != null && !div.Equals("null"))
                         {
                             var record = gameRecords.Find(record => record.gameID.ToString().Equals(gameID));
                             if (record.player1.Equals(player))
                             {
-                                record.lastMovePlayer1 = new Move { nrow = int.Parse(nrow), ncol = int.Parse(ncol), orow = int.Parse(orow), ocol = int.Parse(ocol) };
+                                record.lastMovePlayer1 = new Move { nrow = int.Parse(nrow), ncol = int.Parse(ncol), orow = int.Parse(orow), ocol = int.Parse(ocol), fac = fac, div = div };
                                 Console.WriteLine("In game {0}, player {1} moved the chess from [row {2} col {3}] to [row {4} col {5}]", record.gameID, record.player1, orow, ocol, nrow, ncol);
                             }
                             else if (record.player2.Equals(player))
                             {
-                                record.lastMovePlayer2 = new Move { nrow = int.Parse(nrow), ncol = int.Parse(ncol), orow = int.Parse(orow), ocol = int.Parse(ocol) };
+                                record.lastMovePlayer2 = new Move { nrow = int.Parse(nrow), ncol = int.Parse(ncol), orow = int.Parse(orow), ocol = int.Parse(ocol), fac = fac, div = div };
                                 Console.WriteLine("In game {0}, player {1} moved the chess from [row {2} col {3}] to [row {4} col {5}]", record.gameID, record.player2, orow, ocol, nrow, ncol);
                             }
                             res = "your move has been submitted";

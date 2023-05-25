@@ -93,7 +93,6 @@ join.addEventListener("click", () => {
 )
 
 registerStatus.appendChild(join);
-
 const pairme = (username, msg_wait) => {
     fetch(`${baseUrl}/pair?player=${username}`, { method: 'POST' })
         .then((resp) => {
@@ -257,12 +256,14 @@ const pairme = (username, msg_wait) => {
                             availableLocation.map((item) => {
                                 board.removeChild(item);
                             })
-                            fetch(`${baseUrl}/mymove?player=${resObj.username}&gameID=${resObj.gameID}&orow=${curr_x}&ocol=${curr_y}&nrow=${tar_x}&ncol=${tar_y}`, { method: 'POST' })
-                            getTheirMove(resObj.username, resObj.gameID)
+                            fetch(`${baseUrl}/mymove?player=${resObj.username}&gameID=${resObj.gameID}&orow=${curr_x}&ocol=${curr_y}&nrow=${tar_x}&ncol=${tar_y}&fac=${faction}&div=${characterEncode(division)}`, { method: 'POST' })
+                            // getTheirMove(resObj.username, resObj.gameID)
                         }
+
                         res.map((item) => {
                             renderChess(res, item.faction, item.division, availableLocations, item.row, item.col)
                         })
+
                         // get available location based on basic moving rules
                         // args -- 
                         // division: '炮', '兵', etc, 
@@ -376,15 +377,47 @@ const pairme = (username, msg_wait) => {
                                         else {
                                             try {
                                                 const resObj = JSON.parse(resp)
+                                                resObj.div = characterDecode(resObj.div)
                                                 console.log(resObj)
+                                                if (resObj !== null) {
+                                                    try {
+                                                        deleteChess(res, parseInt(resObj.orow), parseInt(resObj.ocol));
+                                                    } catch {
+                                                        console.log("failed to remove chess")
+                                                    }
+                                                    try {
+                                                        renderChess(res, resObj.fac, resObj.div, availableLocations, parseInt(resObj.nrow), parseInt(resObj.ncol));
+                                                    } catch {
+                                                        console.log("failed to render chess")
+                                                    }
+
+                                                    var availableLocation = Array.from(document.getElementsByClassName("expected"));
+                                                    availableLocation.map((item) => {
+                                                        board.removeChild(item);
+                                                    })
+                                                }
                                             }
                                             catch {
                                                 console.log("abnormal response: ", resp)
                                             }
                                         }
                                     })
-                                })
+                                }).catch(() => console.log("cannot issue this request"))
                         }
+
+                        var getMove = document.createElement("button")
+                        getMove.innerText = "Get the other player's move"
+                        getMove.addEventListener("click", () => {
+                            try {
+
+                                getTheirMove(resObj.username, resObj.gameID)
+
+                            } catch {
+                                console.log("cannot get other's move")
+                            }
+                        })
+                        registerStatus.appendChild(getMove)
+
                     }
                     ).catch(() => { console.log("invalid request") })
 
@@ -392,6 +425,64 @@ const pairme = (username, msg_wait) => {
                 }
             }))
         })
+}
+
+const characterEncode = (origin) => {
+    switch (origin) {
+        case "炮":
+            return "pao_black"
+        case "卒":
+            return "zu"
+        case "車":
+            return "ju"
+        case "馬":
+            return "ma"
+        case "象":
+            return "xiang_black"
+        case "士":
+            return "shi_black"
+        case "將":
+            return "jiang"
+        case "砲":
+            return "pao_red"
+        case "兵":
+            return "bin"
+        case "相":
+            return "xiang_red"
+        case "仕":
+            return "shi_red"
+        case "帥":
+            return "shuai"
+    }
+}
+
+const characterDecode = (origin) => {
+    switch (origin) {
+        case "pao_black":
+            return "炮"
+        case "zu":
+            return "卒"
+        case "ju":
+            return "車"
+        case "ma":
+            return "馬"
+        case "xiang_black":
+            return "象"
+        case "shi_black":
+            return "士"
+        case "jiang":
+            return "將"
+        case "pao_red":
+            return "砲"
+        case "bin":
+            return "兵"
+        case "xiang_red":
+            return "相"
+        case "shi_red":
+            return "仕"
+        case "shuai":
+            return "帥"
+    }
 }
 
 window.addEventListener("beforeunload", (e) => {
