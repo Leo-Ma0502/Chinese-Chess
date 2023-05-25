@@ -18,12 +18,13 @@ ul li {
 
 #outBorder {
   width: 530px;
-  height: 650px;
+  height: 85%;
   border: 2px solid #960;
-  margin: 50px auto;
+  margin: auto;
   text-align: center;
   position: relative;
   background-color: #634223;
+  overflow-y: scroll;
 }
 
 #outBorder h1 {

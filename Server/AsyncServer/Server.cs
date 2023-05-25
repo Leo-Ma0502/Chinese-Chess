@@ -264,7 +264,8 @@ namespace AsyncServer
                                     {
                                         msg = string.Format("You have been paired with {0}, good luck!", existing.player1.Equals(player) ? existing.player2 : existing.player1),
                                         username = player,
-                                        label = "1"
+                                        label = "1",
+                                        gameID = existing.gameID.ToString()
                                     };
                                     res = JsonSerializer.Serialize(resObj);
                                 }
@@ -492,6 +493,7 @@ namespace AsyncServer
             }
             if (waitingQueue.Count != 1)
             {
+                int? currGID = null;
                 // pair this player with another waiting player and delete both of them from waiting pool
                 foreach (var item in gameRecords)
                 {
@@ -500,11 +502,13 @@ namespace AsyncServer
                         item.player2 = player;
                         item.status = "progress";
                         item.epPlayer2 = handler.RemoteEndPoint.ToString();
+                        currGID = item.gameID;
                     }
                 }
                 Response2Player resObj = new Response2Player
                 {
                     msg = string.Format("You have been paired with {0}, good luck!", waitingQueue[0]),
+                    gameID = currGID?.ToString(),
                     username = player,
                     label = "2"
                 };
@@ -531,6 +535,7 @@ namespace AsyncServer
                     Response2Player resObj = new Response2Player
                     {
                         msg = "You have been added to the waiting queue, searching for another player...",
+                        gameID = gameRecords[currGID].gameID.ToString(),
                         username = player,
                         label = "1"
                     };
@@ -547,7 +552,8 @@ namespace AsyncServer
                     {
                         msg = string.Format("You have been paired with {0}, good luck!", gameRecords[currGID].player2),
                         username = player,
-                        label = "1"
+                        label = "1",
+                        gameID = currGID.ToString()
                     };
                     res = JsonSerializer.Serialize(resObject);
                 }

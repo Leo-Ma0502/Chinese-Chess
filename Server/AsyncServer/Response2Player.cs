@@ -7,6 +7,7 @@ namespace AsyncServer
         public string username { get; set; }
         public string label { get; set; }
         public string? msg { get; set; }
+        public string? gameID { get; set; }
 
     }
 }
