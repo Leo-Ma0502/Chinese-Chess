@@ -304,7 +304,23 @@ const pairme = (username, msg_wait) => {
                                 { x: curr_loc.x + 2, y: curr_loc.y + 2 },
                             ].filter((item) => item.x >= 0 && item.x <= 9 && item.y >= 0 && item.y <= 8) // number of all other points for elephant
 
+                            var guard_slot = [
+                                { x: curr_loc.x - 1, y: curr_loc.y - 1 },
+                                { x: curr_loc.x - 1, y: curr_loc.y + 1 },
+                                { x: curr_loc.x + 1, y: curr_loc.y - 1 },
+                                { x: curr_loc.x + 1, y: curr_loc.y + 1 },
+                            ].filter((item) => ((item.x >= 0 && item.x <= 2) || (item.x >= 7 && item.x <= 9)) && item.y >= 3 && item.y <= 5) // number of all other points for guard
+
+                            var king_slot = [
+                                { x: curr_loc.x - 1, y: curr_loc.y },
+                                { x: curr_loc.x + 1, y: curr_loc.y },
+                                { x: curr_loc.x, y: curr_loc.y - 1 },
+                                { x: curr_loc.x, y: curr_loc.y + 1 },
+                            ].filter((item) => ((item.x >= 0 && item.x <= 2) || (item.x >= 7 && item.x <= 9)) && item.y >= 3 && item.y <= 5) // number of all other points for king
+
                             switch (division) {
+                                case '車':
+                                case '车':
                                 case '砲':
                                 case '炮':
                                     if (left_slot.length != 0) {
@@ -336,11 +352,95 @@ const pairme = (username, msg_wait) => {
                                     }
                                     break;
                                 case '相':
+                                    if (curr_loc.x > 4) {
+                                        if (elephant_slot.length != 0) {
+                                            elephant_slot.map((item) => {
+                                                targets.push(item)
+                                            })
+                                        }
+                                    }
+                                    break;
                                 case '象':
-                                    if (elephant_slot.length != 0) {
-                                        elephant_slot.map((item) => {
-                                            targets.push(item)
-                                        })
+                                    if (curr_loc.x < 5) {
+                                        if (elephant_slot.length != 0) {
+                                            elephant_slot.map((item) => {
+                                                targets.push(item)
+                                            })
+                                        }
+                                    }
+                                    break;
+                                case '兵':
+                                    if (curr_loc.x > 4) {
+                                        if (above_slot.length != 0) {
+                                            targets.push({ x: curr_loc.x - above_slot[0], y: curr_loc.y })
+                                        }
+                                        else {
+                                            if (above_slot.length != 0) {
+                                                targets.push({ x: curr_loc.x - above_slot[0], y: curr_loc.y })
+                                            }
+                                            if (left_slot.length != 0) {
+                                                targets.push({ x: curr_loc.x, y: curr_loc.y - left_slot[0] })
+                                            }
+                                            if (right_slot.length != 0) {
+                                                targets.push({ x: curr_loc.x, y: curr_loc.y + right_slot[0] })
+                                            }
+                                        }
+                                    }
+
+                                    break;
+                                case '卒':
+                                    if (curr_loc.x < 5) {
+                                        if (below_slot.length != 0) {
+                                            targets.push({ x: curr_loc.x + below_slot[0], y: curr_loc.y })
+                                        }
+                                    }
+                                    else {
+                                        if (below_slot.length != 0) {
+                                            targets.push({ x: curr_loc.x + below_slot[0], y: curr_loc.y })
+                                        }
+                                        if (left_slot.length != 0) {
+                                            targets.push({ x: curr_loc.x, y: curr_loc.y - left_slot[0] })
+                                        }
+                                        if (right_slot.length != 0) {
+                                            targets.push({ x: curr_loc.x, y: curr_loc.y + right_slot[0] })
+                                        }
+                                    }
+
+                                    break;
+                                case '仕':
+                                    if (curr_loc.x <= 9 && curr_loc.x >= 7 && curr_loc.y >= 3 && curr_loc.y <= 5) {
+                                        if (guard_slot.length != 0) {
+                                            guard_slot.map((item) => {
+                                                targets.push(item)
+                                            })
+                                        }
+                                    }
+                                    break;
+                                case '士':
+                                    if (curr_loc.x <= 2 && curr_loc.x >= 0 && curr_loc.y >= 3 && curr_loc.y <= 5) {
+                                        if (guard_slot.length != 0) {
+                                            guard_slot.map((item) => {
+                                                targets.push(item)
+                                            })
+                                        }
+                                    }
+                                    break;
+                                case '將':
+                                    if (curr_loc.x <= 2 && curr_loc.x >= 0 && curr_loc.y >= 3 && curr_loc.y <= 5) {
+                                        if (king_slot.length != 0) {
+                                            king_slot.map((item) => {
+                                                targets.push(item)
+                                            })
+                                        }
+                                    }
+                                    break;
+                                case '帥':
+                                    if (curr_loc.x <= 9 && curr_loc.x >= 7 && curr_loc.y >= 3 && curr_loc.y <= 5) {
+                                        if (king_slot.length != 0) {
+                                            king_slot.map((item) => {
+                                                targets.push(item)
+                                            })
+                                        }
                                     }
                                     break;
                             }
