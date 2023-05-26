@@ -208,8 +208,8 @@ const pairme = (username, msg_wait) => {
                                                     var availableLocation = document.createElement('div');
                                                     availableLocation.className = "chessPieces expected";
                                                     availableLocation.style.position = "absolute"
-                                                    availableLocation.style.left = location[item.x][item.y].x + 47.5;
-                                                    availableLocation.style.top = location[item.x][item.y].y + 65;
+                                                    availableLocation.style.left = location[item.x][item.y].x;
+                                                    availableLocation.style.top = location[item.x][item.y].y;
                                                     availableLocation.addEventListener("click", () => {
                                                         moveChess(faction, division, location, x, y, item.x, item.y, board)
                                                     })
@@ -245,7 +245,7 @@ const pairme = (username, msg_wait) => {
                                                     var availableLocation = document.createElement('div');
                                                     availableLocation.className = "chessPieces expected";
                                                     availableLocation.style.position = "absolute"
-                                                    availableLocation.style.left = location[item.x][item.y].x + 47.5;
+                                                    availableLocation.style.left = location[item.x][item.y].x + che;
                                                     availableLocation.style.top = location[item.x][item.y].y + 65;
                                                     availableLocation.addEventListener("click", () => {
                                                         moveChess(faction, division, location, x, y, item.x, item.y, board)
