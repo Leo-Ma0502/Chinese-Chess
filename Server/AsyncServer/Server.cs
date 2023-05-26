@@ -114,17 +114,14 @@ namespace AsyncServer
                             if (j == 0 || j == 8)
                             {
                                 div = "車";
-                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
                             }
                             else if (j == 1 || j == 7)
                             {
                                 div = "馬";
-                                //temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
                             }
                             else if (j == 2 || j == 6)
                             {
                                 div = "相";
-                                // temp[i, j] = JsonSerializer.Serialize(new Status { row = i, col = j, faction = fac, division = div });
                             }
                             else if (j == 3 || j == 5)
                             {
@@ -200,7 +197,6 @@ namespace AsyncServer
                                 {
                                     RespondClient(response, handler, current_conn);
                                 }
-                                // RespondClient(response, handler, current_conn);
                             }
                         }
                         catch
@@ -248,7 +244,7 @@ namespace AsyncServer
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     await handler.SendAsync(echoBytes, SocketFlags.None);
-                    Console.WriteLine("Socket server sent message on thread {0}: {1}", Environment.CurrentManagedThreadId, res);
+                    Console.WriteLine("Thread {0} responded {1} for {2}", Environment.CurrentManagedThreadId, handler.RemoteEndPoint, reqString[startingIndex].Trim());
 
                 }
                 //   /
@@ -266,6 +262,7 @@ namespace AsyncServer
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     await handler.SendAsync(echoBytes, SocketFlags.None);
+                    Console.WriteLine("Thread {0} responded {1} for {2}", Environment.CurrentManagedThreadId, handler.RemoteEndPoint, reqString[startingIndex].Trim());
                 }
                 // /pair
                 else if (reqString[startingIndex].Trim().Equals("/pair"))
@@ -311,12 +308,13 @@ namespace AsyncServer
                     {
                         res = "invalid request";
                     }
-                    // PrintRecord(gameRecords);
+
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     try
                     {
                         await handler.SendAsync(echoBytes, SocketFlags.None);
+                        Console.WriteLine("Thread {0} responded {1} for {2}", Environment.CurrentManagedThreadId, handler.RemoteEndPoint, string.Format("{0}?player={1}", reqString[startingIndex].Trim(), player));
                     }
                     catch
                     {
@@ -356,6 +354,7 @@ namespace AsyncServer
                     try
                     {
                         await handler.SendAsync(echoBytes, SocketFlags.None);
+                        Console.WriteLine("Thread {0} responded {1} for {2}", Environment.CurrentManagedThreadId, handler.RemoteEndPoint, string.Format("{0}?player={1}&gameID={2}", reqString[startingIndex].Trim(), player, gameID));
                     }
                     catch
                     {
@@ -381,19 +380,26 @@ namespace AsyncServer
                         if (player != null && !player.Equals("null") && gameID != null && !gameID.Equals("null") && orow != null && !orow.Equals("null") && ocol != null && !ocol.Equals("null") && nrow != null && !nrow.Equals("null") && ncol != null && !ncol.Equals("null") && fac != null && !fac.Equals("null") && div != null && !div.Equals("null"))
                         {
                             var record = gameRecords.Find(record => record.gameID.ToString().Equals(gameID));
-                            if (record.player1.Equals(player))
+                            if (record.status.Equals("progress"))
                             {
-                                record.lastMovePlayer1 = new Move { nrow = int.Parse(nrow), ncol = int.Parse(ncol), orow = int.Parse(orow), ocol = int.Parse(ocol), fac = fac, div = div };
-                                record.whoseTurn = "player2";
-                                Console.WriteLine("In game {0}, player {1} moved the chess from [row {2} col {3}] to [row {4} col {5}]", record.gameID, record.player1, orow, ocol, nrow, ncol);
+                                if (record.player1.Equals(player))
+                                {
+                                    record.lastMovePlayer1 = new Move { nrow = int.Parse(nrow), ncol = int.Parse(ncol), orow = int.Parse(orow), ocol = int.Parse(ocol), fac = fac, div = div };
+                                    record.whoseTurn = "player2";
+                                    Console.WriteLine("In game {0}, player {1} moved the chess from [row {2} col {3}] to [row {4} col {5}]", record.gameID, record.player1, orow, ocol, nrow, ncol);
+                                }
+                                else if (record.player2.Equals(player))
+                                {
+                                    record.lastMovePlayer2 = new Move { nrow = int.Parse(nrow), ncol = int.Parse(ncol), orow = int.Parse(orow), ocol = int.Parse(ocol), fac = fac, div = div };
+                                    record.whoseTurn = "player1";
+                                    Console.WriteLine("In game {0}, player {1} moved the chess from [row {2} col {3}] to [row {4} col {5}]", record.gameID, record.player2, orow, ocol, nrow, ncol);
+                                }
+                                res = "your move has been submitted";
                             }
-                            else if (record.player2.Equals(player))
+                            else
                             {
-                                record.lastMovePlayer2 = new Move { nrow = int.Parse(nrow), ncol = int.Parse(ncol), orow = int.Parse(orow), ocol = int.Parse(ocol), fac = fac, div = div };
-                                record.whoseTurn = "player1";
-                                Console.WriteLine("In game {0}, player {1} moved the chess from [row {2} col {3}] to [row {4} col {5}]", record.gameID, record.player2, orow, ocol, nrow, ncol);
+                                res = "This game has been terminated because the other player went offline";
                             }
-                            res = "your move has been submitted";
                         }
                         else
                         {
@@ -407,6 +413,7 @@ namespace AsyncServer
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     await handler.SendAsync(echoBytes, SocketFlags.None);
+                    Console.WriteLine("Thread {0} responded {1} for {2}", Environment.CurrentManagedThreadId, handler.RemoteEndPoint, string.Format("{0}?player={1}&gameID={2}&orow={3}&ocol={4}&nrow={5}&ncol={6}&fac={7}&div={8}", reqString[startingIndex].Trim(), player, gameID, orow, ocol, nrow, ncol, fac, div));
                 }
                 // /initialstatus
                 else if (reqString[startingIndex].Trim().Equals("/initialstatus"))
@@ -444,6 +451,7 @@ namespace AsyncServer
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     await handler.SendAsync(echoBytes, SocketFlags.None);
+                    Console.WriteLine("Thread {0} responded {1} for {2}", Environment.CurrentManagedThreadId, handler.RemoteEndPoint, string.Format("{0}?player={1}&gameID={2}", reqString[startingIndex].Trim(), player, gameID));
                 }
                 // /theirmove
                 else if (reqString[startingIndex].Trim().Equals("/theirmove"))
@@ -485,6 +493,7 @@ namespace AsyncServer
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     await handler.SendAsync(echoBytes, SocketFlags.None);
+                    Console.WriteLine("Thread {0} responded {1} for {2}", Environment.CurrentManagedThreadId, handler.RemoteEndPoint, string.Format("{0}?player={1}&gameID={2}", reqString[startingIndex].Trim(), player, gameID));
                 }
                 // myturn
                 else if (reqString[startingIndex].Trim().Equals("/myturn"))
@@ -544,6 +553,7 @@ namespace AsyncServer
                     string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     await handler.SendAsync(echoBytes, SocketFlags.None);
+                    Console.WriteLine("Thread {0} responded {1} for {2}", Environment.CurrentManagedThreadId, handler.RemoteEndPoint, string.Format("{0}?player={1}&gameID={2}", reqString[startingIndex].Trim(), player, gameID));
                 }
                 // 404
                 else
@@ -552,6 +562,7 @@ namespace AsyncServer
                     string responseHEAD = $"HTTP/1.1 404 NOT FOUND\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     await handler.SendAsync(echoBytes, SocketFlags.None);
+                    Console.WriteLine("Thread {0} rejected an invalid request from {1}", Environment.CurrentManagedThreadId, handler.RemoteEndPoint);
                 }
             }).Start();
         }
@@ -660,6 +671,7 @@ namespace AsyncServer
                     new Thread(() =>
                     {
                         relatedRecord.status = "terminated";
+                        Console.WriteLine("Thread {0} closing connection with {1} and terminating...", Environment.CurrentManagedThreadId, vanishedEndPoint);
                         Console.WriteLine("Game {0} terminated", relatedRecord.gameID);
                     }).Start();
                     // listen on change of game record

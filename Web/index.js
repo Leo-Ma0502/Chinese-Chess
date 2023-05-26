@@ -289,6 +289,13 @@ const pairme = (username, msg_wait) => {
                                     board.removeChild(item);
                                 })
                                 fetch(`${baseUrl}/mymove?player=${resObj.username}&gameID=${resObj.gameID}&orow=${curr_x}&ocol=${curr_y}&nrow=${tar_x}&ncol=${tar_y}&fac=${faction}&div=${characterEncode(division)}`, { method: 'POST' })
+                                    .then((resp) => {
+                                        resp.text().then((resp) => {
+                                            if (resp.includes("offline")) {
+                                                alert(resp)
+                                            }
+                                        })
+                                    })
                                 try { myturn(username, myturnyet, resObj.gameID) } catch { console.log("get turn failed") }
                             }
                             else {
@@ -547,38 +554,15 @@ const pairme = (username, msg_wait) => {
                                     resp.text().then((resp => {
                                         if (!resp.includes("true")) {
                                             targetProxy.message_turn = "not your turn yet"
-                                            // registerStatus.removeChild(msg_turn)
-                                            // var msg_not_turn = document.createElement("span")
-                                            // msg_not_turn.innerText = myturnyet.message_turn
-                                            // registerStatus.appendChild(document.createElement("br"))
-                                            // registerStatus.appendChild(msg_not_turn)
                                             setTimeout(() => {
                                                 myturn(username, myturnyet, gameID)
                                             }, 3000)
                                         } else {
                                             targetProxy.message_turn = "it's your turn now"
-                                            // registerStatus.removeChild(msg_not_turn)
-                                            // var msg_turn = document.createElement("span")
-                                            // msg_turn.innerText = myturnyet.message_turn
-                                            // registerStatus.appendChild(document.createElement("br"))
-                                            // registerStatus.appendChild(msg_turn)
                                         }
                                     }))
                                 })
                         }
-
-                        // registerStatus.removeChild(msg_not_turn)
-                        // var msg_turn = document.createElement("span")
-                        // msg_turn.innerText = "not your turn yet"
-                        // registerStatus.appendChild(document.createElement("br"))
-                        // registerStatus.appendChild(msg_turn)
-
-                        // var msg_not_turn = document.createElement("span")
-                        // msg_not_turn.innerText = "your turn now"
-                        // registerStatus.appendChild(document.createElement("br"))
-                        // registerStatus.appendChild(document.createElement("br"))
-                        // registerStatus.appendChild(msg_not_turn)
-
 
                         try { myturn(username, myturnyet, resObj.gameID) } catch { console.log("get turn failed") }
 
