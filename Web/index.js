@@ -1,5 +1,7 @@
 const baseUrl = "http://127.0.0.1:8081"
 const board = document.getElementById("mainBoard");
+const delta_x = board.clientWidth * 0.12
+const delta_y = board.clientHeight * 0.15
 
 // all cells
 const cellList = Array.from(document.getElementsByTagName("li")).filter((li) => {
@@ -190,8 +192,8 @@ const pairme = (username, msg_wait) => {
                                 chess.id = JSON.stringify({ x: x, y: y })
                                 chess.appendChild(innerDiv);
                                 chess.style.position = "absolute"
-                                chess.style.left = location[x][y].x + 47.5;
-                                chess.style.top = location[x][y].y + 65;
+                                chess.style.left = location[x][y].x + delta_x;
+                                chess.style.top = location[x][y].y + delta_y;
                                 if (resObj.label == "1") {
                                     // red side
                                     if (chess.className.includes("red")) {
@@ -208,8 +210,8 @@ const pairme = (username, msg_wait) => {
                                                     var availableLocation = document.createElement('div');
                                                     availableLocation.className = "chessPieces expected";
                                                     availableLocation.style.position = "absolute"
-                                                    availableLocation.style.left = location[item.x][item.y].x + 47.5;
-                                                    availableLocation.style.top = location[item.x][item.y].y + 65;
+                                                    availableLocation.style.left = location[item.x][item.y].x + delta_x;
+                                                    availableLocation.style.top = location[item.x][item.y].y + delta_y;
                                                     availableLocation.addEventListener("click", () => {
                                                         moveChess(faction, division, location, x, y, item.x, item.y, board)
                                                     })
@@ -245,8 +247,8 @@ const pairme = (username, msg_wait) => {
                                                     var availableLocation = document.createElement('div');
                                                     availableLocation.className = "chessPieces expected";
                                                     availableLocation.style.position = "absolute"
-                                                    availableLocation.style.left = location[item.x][item.y].x + 47.5;
-                                                    availableLocation.style.top = location[item.x][item.y].y + 65;
+                                                    availableLocation.style.left = location[item.x][item.y].x + delta_x;
+                                                    availableLocation.style.top = location[item.x][item.y].y + delta_y;
                                                     availableLocation.addEventListener("click", () => {
                                                         moveChess(faction, division, location, x, y, item.x, item.y, board)
                                                     })
