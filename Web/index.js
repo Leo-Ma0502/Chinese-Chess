@@ -43,13 +43,9 @@ const getCoordinates = (cellList) => {
     })
     var sorted = []
     for (var i = 0; i < NewCoordinates.length; i += 9) {
-        // console.log(NewCoordinates.slice(i, i + 9).sort((previous, after) => {
-        //     return previous.x - after.x
-        // }))
         sorted.push(NewCoordinates.slice(i, i + 9).sort((previous, after) => {
             return previous.x - after.x
         }))
-        // console.log(sorted)
     }
     return sorted;
 }
@@ -579,6 +575,13 @@ const pairme = (username, msg_wait) => {
                         })
                         registerStatus.appendChild(getMove)
 
+                        window.addEventListener("beforeunload", (e) => {
+                            e.preventDefault();
+                            fetch(`${baseUrl}/forcedisconnect?player=${resObj.username}&gameID=${resObj.gameID}`)
+                            location.reload()
+                            e.returnValue = ""
+                        })
+
                     }
                     ).catch(() => { console.log("invalid request") })
 
@@ -647,9 +650,4 @@ const characterDecode = (origin) => {
     }
 }
 
-window.addEventListener("beforeunload", (e) => {
-    e.preventDefault();
-    alert("If you refresh this page, you would be logged out and game data would be lost")
-    location.reload()
-    e.returnValue = ""
-})
+

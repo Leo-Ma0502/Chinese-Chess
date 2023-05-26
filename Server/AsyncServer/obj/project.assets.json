@@ -8,25 +8,26 @@
     "net7.0": []
   },
   "packageFolders": {
-    "/Users/yehengma/.nuget/packages/": {}
+    "C:\\Users\\yehengma\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/yehengma/COMPSCI711/Chinese-Chess/Server/AsyncServer/AsyncServer.csproj",
+      "projectUniqueName": "C:\\Users\\yehengma\\source\\Chinese-Chess\\server\\AsyncServer\\AsyncServer.csproj",
       "projectName": "AsyncServer",
-      "projectPath": "/Users/yehengma/COMPSCI711/Chinese-Chess/Server/AsyncServer/AsyncServer.csproj",
-      "packagesPath": "/Users/yehengma/.nuget/packages/",
-      "outputPath": "/Users/yehengma/COMPSCI711/Chinese-Chess/Server/AsyncServer/obj/",
+      "projectPath": "C:\\Users\\yehengma\\source\\Chinese-Chess\\server\\AsyncServer\\AsyncServer.csproj",
+      "packagesPath": "C:\\Users\\yehengma\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\yehengma\\source\\Chinese-Chess\\server\\AsyncServer\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/yehengma/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\yehengma\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net7.0"
       ],
       "sources": {
-        "/usr/local/share/dotnet/library-packs": {},
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -60,7 +61,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/7.0.302/RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.202\\RuntimeIdentifierGraph.json"
       }
     }
   }

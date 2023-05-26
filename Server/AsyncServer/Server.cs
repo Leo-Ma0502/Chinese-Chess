@@ -182,14 +182,15 @@ namespace AsyncServer
                         {
                             var buffer = new byte[1_024];
                             var received = await handler.ReceiveAsync(buffer, SocketFlags.None);
+                            string endpoint = handler.RemoteEndPoint.ToString();
                             var response = Encoding.UTF8.GetString(buffer, 0, received);
                             if (received == 0)
                             {
-                                current_conn--;
-                                string vanishedEndPoint = handler.RemoteEndPoint.ToString();
-                                Console.WriteLine("{0} went off line, current connection: {1}", vanishedEndPoint, current_conn);
-                                HandleOffline(vanishedEndPoint);
                                 break;
+                            }
+                            else if (!handler.Connected)
+                            {
+                                HandleOffline(endpoint);
                             }
                             else
                             {
@@ -336,7 +337,14 @@ namespace AsyncServer
                             var record = gameRecords.Find(record => record.gameID.ToString().Equals(gameID));
                             if (record.player1.Equals(player))
                             {
-                                HandleOffline(record.epPlayer1);
+                                try
+                                {
+                                    HandleOffline(record.epPlayer1);
+                                }
+                                catch
+                                {
+                                    Console.WriteLine("the player is not in record");
+                                }
                             }
                             else if (record.player2.Equals(player))
                             {
@@ -495,7 +503,7 @@ namespace AsyncServer
                     await handler.SendAsync(echoBytes, SocketFlags.None);
                     Console.WriteLine("Thread {0} responded {1} for {2}", Environment.CurrentManagedThreadId, handler.RemoteEndPoint, string.Format("{0}?player={1}&gameID={2}", reqString[startingIndex].Trim(), player, gameID));
                 }
-                // myturn
+                // /myturn
                 else if (reqString[startingIndex].Trim().Equals("/myturn"))
                 {
                     string res;
@@ -554,6 +562,47 @@ namespace AsyncServer
                     var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
                     await handler.SendAsync(echoBytes, SocketFlags.None);
                     Console.WriteLine("Thread {0} responded {1} for {2}", Environment.CurrentManagedThreadId, handler.RemoteEndPoint, string.Format("{0}?player={1}&gameID={2}", reqString[startingIndex].Trim(), player, gameID));
+                }
+                // /forcedisconnect
+                else if (reqString[startingIndex].Trim().Equals("/forcedisconnect"))
+                {
+                    string res;
+                    try
+                    {
+                        res = "bye";
+                        string player = getParams(reqString, "player").Trim();
+                        string gameID = getParams(reqString, "gameID").Trim();
+                        if (player != null && !player.Equals("null") && gameID != null && !gameID.Equals("null"))
+                        {
+                            res = "bye";
+                            var record = gameRecords.Find(record => record.gameID.ToString().Equals(gameID));
+                            if (record.player1.Equals(player))
+                            {
+                                HandleOffline(record.epPlayer1);
+                            }
+                            else if (record.player2.Equals(player))
+                            {
+                                HandleOffline(record.epPlayer2);
+                            }
+                        }
+                        else
+                        {
+                            HandleOffline(handler.RemoteEndPoint.ToString());
+                        }
+                    }
+                    catch { res = "Invalid Request"; }
+                    string responseHEAD = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Length: {res.Length}\r\n\r\n{res}";
+                    var echoBytes = Encoding.UTF8.GetBytes(responseHEAD);
+                    try
+                    {
+                        await handler.SendAsync(echoBytes, SocketFlags.None);
+                        Console.WriteLine("Thread {0} responded {1} for {2}", Environment.CurrentManagedThreadId, handler.RemoteEndPoint, string.Format("{0}", reqString[startingIndex].Trim()));
+                        handler.Close();
+                    }
+                    catch
+                    {
+                        Console.WriteLine("Connection lost for quit");
+                    }
                 }
                 // 404
                 else
@@ -699,18 +748,6 @@ namespace AsyncServer
             {
                 Console.WriteLine("Something went wrong...");
             }
-        }
-
-        // check connection on each socket 
-        private Boolean CheckConnection(Socket handler)
-        {
-            var buffer = new byte[1_024];
-            var received = handler.Receive(buffer, SocketFlags.None);
-            if (received == 0)
-            {
-                return false;
-            }
-            return true;
         }
     }
 }
