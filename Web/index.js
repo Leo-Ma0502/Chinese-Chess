@@ -13,7 +13,7 @@ const getCoordinates = (cellList) => {
     var coordinates = cellList.map((cell) => {
         return { x: cell.getBoundingClientRect().x, y: cell.getBoundingClientRect().y };
     });
-    // console.log("coordinates of all cells: ", coordinates);
+
     // check whether coordinate {x:x, y:y} referred to as coor exists in coordinates referred to as ArrayA
     var exists = (ArrayA, coor) => {
         if (ArrayA.some((item) => item.x == coor.x && item.y == coor.y)) {
