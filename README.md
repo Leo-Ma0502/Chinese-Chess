@@ -84,3 +84,8 @@ g. Back to step b, until one of players logs out.
 
 /initialstatus?player={}&gameID={}
 ```
+
+## Future work:
+
+1. Deploy this application,
+2. Involve the engagement rules.
