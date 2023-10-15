@@ -26,7 +26,7 @@ Open the HTML file in two different browsers. In each window, click register and
 Acknowledgement:
 https://codepen.io/huangwei/pen/zqPbjY.
 The online source code is mainly used for the chess board and chess style, and has been modified.
-![Web screenshot](Screenshots/Web.png)
+![Web screenshot](About/Screenshots/Web.png)
 
 ### What web client does:
 
@@ -44,7 +44,7 @@ f. Back to step b.
 
 ## Server
 
-![Server log](Screenshots/Server.png)
+![Server log](About/Screenshots/Server.png)
 
 ### What server does:
 
